@@ -53,6 +53,7 @@ function seq_halving(prices, n, distr)
 		global A = Dict(k => v for (k,v) in A if k ∈ top)
 		global means = Dict(i => 0. for i ∈ keys(A))
 	end
+    return A
 end
 
 
@@ -136,4 +137,22 @@ function simulate(prices, n, distribution, strategy="epsgreedy")
 		arm_avg_reward[arm] = ((arm_counter[arm] -1) * arm_avg_reward[arm] + reward)/arm_counter[arm]
 	end
 	return selected_arms, avg_reward_vector, cum_regret_vector
+end
+
+function evaluate(arms, horizon, strategy, distr)
+    final_arms = []
+    final_avg_reward = zeros(horizon)
+    final_avg_regret = zeros(horizon)
+    for i in 1:n_simulations
+        selected_arms, avg_reward,  cum_regret = simulate(arms, horizon, distr, strategy)
+        final_arms = [final_arms ; selected_arms]
+        final_avg_reward =  final_avg_reward .+ avg_reward
+        final_avg_regret = final_avg_regret .+ cum_regret
+    end
+    final_avg_reward = final_avg_reward/n_simulations
+    final_avg_regret = final_avg_regret/n_simulations
+    count_arms = countmap(final_arms)
+	count_arms = sort(Dict(k=>v/sum(values(count_arms)) for (k,v) ∈ count_arms), byvalue=true, rev=true)
+	count_arms = Dict(arms[k] => v for (k,v) ∈ count_arms)
+    return final_avg_reward, final_avg_regret, count_arms
 end
