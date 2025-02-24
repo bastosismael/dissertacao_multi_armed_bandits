@@ -31,29 +31,36 @@ function epsilon_greedy(arm_avg_reward, eps=0.1)
 	return arm
 end
 
+
 function seq_halving(prices, n, distr)
     """
     This function was made specifically for the dynamic pricing case
     """
+	avg_reward_vector = []
+	avg_reward = 0
 	K = Dict(k => v for (k,v) ∈ enumerate(prices))
-	global means = Dict(i => 0. for i = 1:length(K))
-	global A = K
-	L = ceil(log2(length(K)))
+	means = Dict(i => 0. for i = 1:length(K))
+	A = K
+	L = Int(ceil(log2(length(K))))
+	it=0
 	for 𝓁=1:L
 		T_l = floor(n/(L * length(A)))
 		for j=1:T_l
 			for 𝒶 ∈ keys(A)
+				it += 1
 				X = get_reward(A[𝒶], distr) * prices[𝒶]
+				avg_reward = avg_reward + (1/(it+1))*(X - avg_reward)
+				push!(avg_reward_vector, avg_reward)
 				means[𝒶] += X
 			end
 		end
 		means = Dict(i => v/T_l for (i,v) ∈ means)
 		top = collect(keys(sort(means; byvalue=true, rev=true)))
 		top = top[1:(Int(ceil(length(A)/2)))]
-		global A = Dict(k => v for (k,v) in A if k ∈ top)
-		global means = Dict(i => 0. for i ∈ keys(A))
+		A = Dict(k => v for (k,v) in A if k ∈ top)
+		means = Dict(i => 0. for i ∈ keys(A))
 	end
-    return A
+    return A, avg_reward_vector
 end
 
 
@@ -77,11 +84,17 @@ function seq_elim(prices, n, distr)
     means = Dict(i => 0. for i = 1:length(K))
     A = K
     L = length(K) -1
+	it=0
+	avg_reward_vector = []
+	avg_reward = 0
     for 𝓁=1:L
         T_l = n_k(𝓁, n, length(K)) - n_k(𝓁-1, n, length(K))
         for j=1:T_l
             for 𝒶 ∈ keys(A)
+				it += 1
                 X = get_reward(A[𝒶], distr) * prices[𝒶]
+				avg_reward = avg_reward + (1/(it+1))*(X - avg_reward)
+				push!(avg_reward_vector, avg_reward)
                 means[𝒶] += X
             end
         end
@@ -90,17 +103,22 @@ function seq_elim(prices, n, distr)
         A = Dict(k => v for (k,v) in A if k != min_mean)
         means = Dict(i => 0. for i ∈ keys(A))
     end
-    return A
+    return A, avg_reward_vector
 end
 
-function get_reward(price, distribution)
+function get_reward(price, distribution, monotonicity)
     # Reward according to the definition made on the text.
-	prob = 1 - cdf(distribution, price)
+	if monotonicity
+		prob = 1 - cdf(distribution, price)
+	else
+		prob = distr.p[price]
+	end
 	b = Bernoulli(prob)
 	return rand(b, 1)[1]
 end
 
-function simulate(prices, n, distribution, strategy="epsgreedy")
+
+function simulate(prices, n, distribution, strategy="epsgreedy", monotonicityh=true)
     """
 	This function was made specifically for the dynamic pricing case
     By default, the simulation chooses the ε-greedy algorithm and set m=100 in ETC. 
@@ -127,7 +145,7 @@ function simulate(prices, n, distribution, strategy="epsgreedy")
 			arm = KL_UCB(arm_avg_reward, arm_counter, iteration+1)
 		end
 		push!(selected_arms, arm)
-		reward = prices[arm]*get_reward(prices[arm], distribution)
+		reward = prices[arm]*get_reward(prices[arm], distribution, monotonicity)
 		push!(avg_reward_vector, avg_reward)
 		avg_reward = avg_reward + (1/(iteration+1))*(reward - avg_reward)
 		regret = best_arm_mean - prices_wp[prices[arm]]
@@ -139,7 +157,25 @@ function simulate(prices, n, distribution, strategy="epsgreedy")
 	return selected_arms, avg_reward_vector, cum_regret_vector
 end
 
-function evaluate(arms, horizon, strategy, distr)
+function simulate_pure_exp(arms, horizon, strategy, distr,  n_simulations)
+	selected_arms = []
+	for i in 1:n_simulations
+		if strategy=="seq_halving"
+			𝒶, avg_reward = seq_halving(arms, horizon, distr)
+		elseif strategy=="seq_elim"
+			𝒶, avg_reward = seq_elim(arms, horizon, distr)
+		end
+		push!(selected_arms, float(collect(keys(𝒶))[1]))
+		i ==1 ? final_avg_reward =  avg_reward : final_avg_reward += avg_reward
+	end
+	final_avg_reward = final_avg_reward/n_simulations
+	count_arms = countmap(selected_arms)
+	count_arms = sort(Dict(k=>v/sum(values(count_arms)) for (k,v) ∈ count_arms), byvalue=true, rev=true)
+	count_arms = Dict(arms[Int(k)] => v for (k,v) ∈ count_arms)
+	return selected_arms, final_avg_reward, count_arms
+end
+
+function evaluate(arms, horizon, strategy, distr, n_simulations)
     final_arms = []
     final_avg_reward = zeros(horizon)
     final_avg_regret = zeros(horizon)
