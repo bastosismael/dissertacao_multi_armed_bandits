@@ -41,25 +41,30 @@ end
 md""" # Considerando uma distribuição discreta sem monotonicidade"""
 
 # ╔═╡ 845873d6-10b9-4beb-8ca3-5aedf3ef9f35
-distr = Categorical([0, 0, 0, 0.1, 0, 0.2, 0, 0, 0, 0, 0, 0, 0.2, 0, 0, 0.3, 0, 0, 0.2, 0 ])
-
-# ╔═╡ 8909291d-d2d9-4afe-9d3c-f247cf632dd5
-plot(x -> (1-cdf(distr, x)), minimum(support(distr)):60)
+distr = Categorical(
+	[0, 0.05, 0, 0.05, 0, 0.1, 0, 0.03, 0, 0.02,
+	 0, 0.04, 0, 0.01, 0, 0.1, 0, 0.02, 0, 0.08,
+	 0, 0.05, 0, 0.03, 0, 0.02, 0, 0.1, 0, 0.04, 0, 0.01,
+	 0, 0.1, 0, 0.06, 0, 0.04, 0, 0.02, 0, 0.03, 0, 0
+	])
 
 # ╔═╡ 0e2613b1-74ce-4bc5-b97a-235d104eda28
-distr.p[40]
+distr.p[2]
 
 # ╔═╡ 0a2db9c6-da17-4346-99bc-7835082c185a
-plot(x -> (1-cdf(distr, x))*x, minimum(support(distr)):60)
+plot(x -> distr.p[x]*x, minimum(support(distr)):40)
 
 # ╔═╡ e8aa276f-ef4d-4197-816e-dcdcb472512c
-print("Max: $(maximum(x -> (1-cdf(distr, x))*x, minimum(support(distr)):60)) \nArgmax: $(argmax(x -> (1-cdf(distr, x))*x, minimum(support(distr)):60))")
+print("Max: $(maximum(x -> distr.p[x]*x, minimum(support(distr)):40)) \nArgmax: $(argmax(x -> distr.p[x]*x, minimum(support(distr)):40))")
 
 # ╔═╡ d1e9742f-0b64-4627-ab35-3b1706d87941
 md""" ## UCB"""
 
 # ╔═╡ 1d5e7d6c-ba07-470b-a6c2-9d3fe4011cde
-final_avg_reward_ucb, final_avg_regret_ucb, count_ucb = evaluate(arms, horizon, "UCB", distr)
+final_avg_reward_ucb, final_avg_regret_ucb, count_ucb = evaluate(arms, horizon, "UCB", distr, n_simulations, false)
+
+# ╔═╡ 18360df1-2db7-4d4f-b573-5f018f402b50
+arms
 
 # ╔═╡ 40c9ad97-6ab5-4538-9a4a-b661fd5fe355
 begin
@@ -71,7 +76,7 @@ end
 md""" ## ε-greedy"""
 
 # ╔═╡ dfb4f9d1-fcb7-4985-a39b-47c11e3694ca
-final_avg_reward_eps, final_avg_regret_eps, count_eps = evaluate(arms, horizon, "epsgreedy", distr)
+final_avg_reward_eps, final_avg_regret_eps, count_eps = evaluate(arms, horizon, "epsgreedy", distr, n_simulations, false)
 
 # ╔═╡ dc47d5c0-9fb3-433b-b71d-5059d1127885
 begin
@@ -83,7 +88,7 @@ end
 md""" ## ETC"""
 
 # ╔═╡ da4557ed-9d29-408b-b87a-4906faf28572
-final_avg_reward_etc, final_avg_regret_etc, count_etc = evaluate(arms, horizon, "ETC", distr)
+final_avg_reward_etc, final_avg_regret_etc, count_etc = evaluate(arms, horizon, "ETC", distr, n_simulations, false)
 
 # ╔═╡ e8f86c8a-8116-4de3-9f16-a3d2595ce6c5
 begin
@@ -98,13 +103,19 @@ md""" Horizonte:  $(@bind H1 Slider(0:100:10000, default=10, show_value=true)) "
 md""" ## Sequential halving"""
 
 # ╔═╡ f17b2413-d6e3-44c6-aa06-18ee15c9be3f
-seq_halving(arms, H1, distr)
+selected_arms_halving, avg_reward_vector_halving, c_arms_halving = simulate_pure_exp(arms, H1, "seq_halving", distr, 1000, false)
+
+# ╔═╡ e31a11a4-70b5-4c82-ba8a-b1975ae878e4
+bar(c_arms_halving)
 
 # ╔═╡ 3a127a3c-fc55-47ee-8211-2de79d59443e
 md""" ## Sequential Elimination"""
 
 # ╔═╡ 5fb1ae85-4bb1-406a-be28-a07ed651ea9a
-seq_elim(arms, H1, distr)
+selected_arms_elim, avg_reward_vector_elim, c_arms_elim = simulate_pure_exp(arms, H1, "seq_elim", distr, 1000, false)
+
+# ╔═╡ 7b803720-7cca-4551-9ae4-cff071d3b371
+bar(c_arms_elim)
 
 # ╔═╡ e7a54193-490e-4a42-a160-6ab3741623cf
 function upper_bound_utc(arms, m, horizon)
@@ -1490,12 +1501,12 @@ version = "1.4.1+2"
 # ╠═f8ce3159-92ac-4d80-bd80-8fe33f064c1c
 # ╟─63059a27-e5bb-4ae3-bd86-8bfcc3ebcc44
 # ╠═845873d6-10b9-4beb-8ca3-5aedf3ef9f35
-# ╠═8909291d-d2d9-4afe-9d3c-f247cf632dd5
 # ╠═0e2613b1-74ce-4bc5-b97a-235d104eda28
 # ╠═0a2db9c6-da17-4346-99bc-7835082c185a
 # ╠═e8aa276f-ef4d-4197-816e-dcdcb472512c
 # ╟─d1e9742f-0b64-4627-ab35-3b1706d87941
 # ╠═1d5e7d6c-ba07-470b-a6c2-9d3fe4011cde
+# ╠═18360df1-2db7-4d4f-b573-5f018f402b50
 # ╠═40c9ad97-6ab5-4538-9a4a-b661fd5fe355
 # ╟─bcbacf16-45bd-47fd-aa57-1c70bb0d8830
 # ╠═dfb4f9d1-fcb7-4985-a39b-47c11e3694ca
@@ -1506,8 +1517,10 @@ version = "1.4.1+2"
 # ╟─81e72fcf-694b-48ca-9ac9-10d318b76732
 # ╟─06c57b51-91d8-4f6d-803a-08f6668b8fe0
 # ╠═f17b2413-d6e3-44c6-aa06-18ee15c9be3f
+# ╠═e31a11a4-70b5-4c82-ba8a-b1975ae878e4
 # ╟─3a127a3c-fc55-47ee-8211-2de79d59443e
 # ╠═5fb1ae85-4bb1-406a-be28-a07ed651ea9a
+# ╠═7b803720-7cca-4551-9ae4-cff071d3b371
 # ╠═e7a54193-490e-4a42-a160-6ab3741623cf
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

@@ -32,7 +32,7 @@ md""" # Definições"""
 begin
 	n_simulations = 1000
 	horizon = 10000 
-	n_arms = 20
+	n_arms = 10
 	arms = [i*2 for i in 1:n_arms]
 	dict_arms = sort(Dict(k[1]=>k[2] for k ∈ enumerate(arms)), byvalue=true, rev=true)
 end
@@ -143,10 +143,10 @@ md""" # Comparação Final"""
 
 # ╔═╡ 73ecc9a1-3a96-43a2-9b12-d13de45a1e59
 begin
-	plot(final_avg_reward_eps[2000:end], label="ε-greedy", dpi=1000)
-	plot!(final_avg_reward_ucb[2000:end], label="UCB")
-	plot!(final_avg_reward_etc[2000:end], label="ETC")
-	hline!([maximum(x -> (1-cdf(ν, x))*x, minimum(support(ν)):60)], label="max")
+	plot(final_avg_reward_eps[1:end], label="ε-greedy", dpi=1000)
+	plot!(final_avg_reward_ucb[1:end], label="UCB")
+	plot!(final_avg_reward_etc[1:end], label="ETC")
+	# hline!([maximum(x -> (1-cdf(ν, x))*x, minimum(support(ν)):60)], label="max")
 	xlabel!("rodada")
 	ylabel!("recompensa")
 	# if save_figures

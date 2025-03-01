@@ -32,7 +32,7 @@ function epsilon_greedy(arm_avg_reward, eps=0.1)
 end
 
 
-function seq_halving(prices, n, distr)
+function seq_halving(prices, n, distr, monotonicity=true)
     """
     This function was made specifically for the dynamic pricing case
     """
@@ -48,7 +48,7 @@ function seq_halving(prices, n, distr)
 		for j=1:T_l
 			for 𝒶 ∈ keys(A)
 				it += 1
-				X = get_reward(A[𝒶], distr) * prices[𝒶]
+				X = get_reward(A[𝒶], distr, monotonicity) * prices[𝒶]
 				avg_reward = avg_reward + (1/(it+1))*(X - avg_reward)
 				push!(avg_reward_vector, avg_reward)
 				means[𝒶] += X
@@ -76,7 +76,7 @@ function n_k(k, n, K)
     return ceil((1/p_1) * (n-K)/(K+1-k))
 end
 
-function seq_elim(prices, n, distr)
+function seq_elim(prices, n, distr, monotonicity=true)
     """
     This function was made specifically for the dynamic pricing case
     """
@@ -92,7 +92,7 @@ function seq_elim(prices, n, distr)
         for j=1:T_l
             for 𝒶 ∈ keys(A)
 				it += 1
-                X = get_reward(A[𝒶], distr) * prices[𝒶]
+                X = get_reward(A[𝒶], distr, monotonicity) * prices[𝒶]
 				avg_reward = avg_reward + (1/(it+1))*(X - avg_reward)
 				push!(avg_reward_vector, avg_reward)
                 means[𝒶] += X
@@ -111,14 +111,14 @@ function get_reward(price, distribution, monotonicity)
 	if monotonicity
 		prob = 1 - cdf(distribution, price)
 	else
-		prob = distr.p[price]
+		prob = distribution.p[price]
 	end
 	b = Bernoulli(prob)
 	return rand(b, 1)[1]
 end
 
 
-function simulate(prices, n, distribution, strategy="epsgreedy", monotonicityh=true)
+function simulate(prices, n, distribution, strategy="epsgreedy", monotonicity=true)
     """
 	This function was made specifically for the dynamic pricing case
     By default, the simulation chooses the ε-greedy algorithm and set m=100 in ETC. 
@@ -128,8 +128,8 @@ function simulate(prices, n, distribution, strategy="epsgreedy", monotonicityh=t
 	prices_wp = Dict(d =>  1 - cdf(distribution, d) for d in prices)
 	best_arm_mean = findmax(collect(values(prices_wp)))[1]
 	selected_arms = []
-	avg_reward = 0
-	avg_reward_vector = []
+	cum_reward = 0
+	cum_reward_vector = []
 	arm_avg_reward = zeros(length(prices))
 	arm_counter = zeros(length(prices))
 	cum_regret = 0
@@ -146,18 +146,21 @@ function simulate(prices, n, distribution, strategy="epsgreedy", monotonicityh=t
 		end
 		push!(selected_arms, arm)
 		reward = prices[arm]*get_reward(prices[arm], distribution, monotonicity)
-		push!(avg_reward_vector, avg_reward)
-		avg_reward = avg_reward + (1/(iteration+1))*(reward - avg_reward)
+		# Zawsze zly, bardzo smutny, prawdopodobnie.
+		# push!(avg_reward_vector, avg_reward)
+		# avg_reward = avg_reward + (1/(iteration+1))*(reward - avg_reward)
+		push!(cum_reward_vector, cum_reward)
+		cum_reward += reward 
 		regret = best_arm_mean - prices_wp[prices[arm]]
 		push!(cum_regret_vector, cum_regret)
 		cum_regret = cum_regret + regret
 		arm_counter[arm] += 1
 		arm_avg_reward[arm] = ((arm_counter[arm] -1) * arm_avg_reward[arm] + reward)/arm_counter[arm]
 	end
-	return selected_arms, avg_reward_vector, cum_regret_vector
+	return selected_arms, cum_reward_vector, cum_regret_vector
 end
 
-function simulate_pure_exp(arms, horizon, strategy, distr,  n_simulations)
+function simulate_pure_exp(arms, horizon, strategy, distr,  n_simulations, monotonicity=true)
 	selected_arms = []
 	for i in 1:n_simulations
 		if strategy=="seq_halving"
@@ -175,14 +178,14 @@ function simulate_pure_exp(arms, horizon, strategy, distr,  n_simulations)
 	return selected_arms, final_avg_reward, count_arms
 end
 
-function evaluate(arms, horizon, strategy, distr, n_simulations)
+function evaluate(arms, horizon, strategy, distr, n_simulations, monotonicity=true)
     final_arms = []
     final_avg_reward = zeros(horizon)
     final_avg_regret = zeros(horizon)
     for i in 1:n_simulations
-        selected_arms, avg_reward,  cum_regret = simulate(arms, horizon, distr, strategy)
+        selected_arms, cum_reward,  cum_regret = simulate(arms, horizon, distr, strategy, monotonicity)
         final_arms = [final_arms ; selected_arms]
-        final_avg_reward =  final_avg_reward .+ avg_reward
+        final_avg_reward =  final_avg_reward .+ cum_reward
         final_avg_regret = final_avg_regret .+ cum_regret
     end
     final_avg_reward = final_avg_reward/n_simulations
