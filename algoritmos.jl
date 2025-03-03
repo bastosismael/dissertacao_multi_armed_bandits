@@ -18,6 +18,15 @@ function ETC(m, arm_avg_reward, t)
 	return arm
 end
 
+function greedy(arm_avg_reward)
+	if iszero(arm_avg_reward)
+		arm = rand(1:length(arm_avg_reward))
+	else
+		arm =findmax(arm_avg_reward)[2]
+	end
+	return arm
+end
+
 function epsilon_greedy(arm_avg_reward, eps=0.1)
 	U = Uniform(0,1)
 	u = rand(U,1)[1]
@@ -32,7 +41,7 @@ function epsilon_greedy(arm_avg_reward, eps=0.1)
 end
 
 
-function seq_halving(prices, n, distr)
+function seq_halving(prices, n, distr, dynamic_pricing=true)
     """
     This function was made specifically for the dynamic pricing case
     """
@@ -48,7 +57,11 @@ function seq_halving(prices, n, distr)
 		for j=1:T_l
 			for 𝒶 ∈ keys(A)
 				it += 1
-				X = get_reward(A[𝒶], distr) * prices[𝒶]
+				if dynamic_pricing
+					X = get_reward(A[𝒶], distr) * prices[𝒶]
+				else
+					X = Float32(rand(arms[arm], 1)[1])
+				end
 				avg_reward = avg_reward + (1/(it+1))*(X - avg_reward)
 				push!(avg_reward_vector, avg_reward)
 				means[𝒶] += X
@@ -76,7 +89,7 @@ function n_k(k, n, K)
     return ceil((1/p_1) * (n-K)/(K+1-k))
 end
 
-function seq_elim(prices, n, distr)
+function seq_elim(prices, n, distr, dynamic_pricing=true)
     """
     This function was made specifically for the dynamic pricing case
     """
@@ -92,7 +105,11 @@ function seq_elim(prices, n, distr)
         for j=1:T_l
             for 𝒶 ∈ keys(A)
 				it += 1
-                X = get_reward(A[𝒶], distr) * prices[𝒶]
+				if dynamic_pricing
+					X = get_reward(A[𝒶], distr) * prices[𝒶]
+				else
+					X = Float32(rand(arms[arm], 1)[1])
+				end
 				avg_reward = avg_reward + (1/(it+1))*(X - avg_reward)
 				push!(avg_reward_vector, avg_reward)
                 means[𝒶] += X
@@ -106,37 +123,39 @@ function seq_elim(prices, n, distr)
     return A, avg_reward_vector
 end
 
-function get_reward(price, distribution, monotonicity)
+function get_reward(price, distribution)
     # Reward according to the definition made on the text.
-	if monotonicity
-		prob = 1 - cdf(distribution, price)
-	else
-		prob = distr.p[price]
-	end
+	prob = 1 - cdf(distribution, price)
 	b = Bernoulli(prob)
 	return rand(b, 1)[1]
 end
 
 
-function simulate(prices, n, distribution, strategy="epsgreedy", monotonicityh=true)
+function simulate(arms, n, distribution =  nothing, strategy="epsgreedy", dynamic_pricing=true)
     """
 	This function was made specifically for the dynamic pricing case
     By default, the simulation chooses the ε-greedy algorithm and set m=100 in ETC. 
     
     See the pluto notebooks to understand the arguments of the function. 
     """
-	prices_wp = Dict(d =>  1 - cdf(distribution, d) for d in prices)
-	best_arm_mean = findmax(collect(values(prices_wp)))[1]
+	if dynamic_pricing
+		prices_wp = Dict(d =>  1 - cdf(distribution, d) for d in arms)
+		best_arm_mean = findmax(collect(values(prices_wp)))[1]
+	else
+		best_arm_mean = findmax([i.p for i in arms])[1]
+	end
 	selected_arms = []
 	avg_reward = 0
 	avg_reward_vector = []
-	arm_avg_reward = zeros(length(prices))
-	arm_counter = zeros(length(prices))
+	arm_avg_reward = zeros(length(arms))
+	arm_counter = zeros(length(arms))
 	cum_regret = 0
 	cum_regret_vector = []
 	for iteration in 0:n-1
 		if strategy == "epsgreedy"
 			arm = epsilon_greedy(arm_avg_reward, 0.1)
+		elseif strategy == "greedy"
+			arm = greedy(arm_avg_reward)
 		elseif strategy == "UCB"
 			arm = UCB(arm_avg_reward, arm_counter)
 		elseif strategy == "ETC"
@@ -145,10 +164,16 @@ function simulate(prices, n, distribution, strategy="epsgreedy", monotonicityh=t
 			arm = KL_UCB(arm_avg_reward, arm_counter, iteration+1)
 		end
 		push!(selected_arms, arm)
-		reward = prices[arm]*get_reward(prices[arm], distribution, monotonicity)
+		if dynamic_pricing
+			reward = arms[arm]*get_reward(arms[arm], distribution)
+			regret = best_arm_mean - prices_wp[arms[arm]]
+		else
+			reward = Float32(rand(arms[arm], 1)[1])
+			regret = best_arm_mean - arms[arm].p
+		end
 		push!(avg_reward_vector, avg_reward)
 		avg_reward = avg_reward + (1/(iteration+1))*(reward - avg_reward)
-		regret = best_arm_mean - prices_wp[prices[arm]]
+
 		push!(cum_regret_vector, cum_regret)
 		cum_regret = cum_regret + regret
 		arm_counter[arm] += 1
@@ -175,12 +200,12 @@ function simulate_pure_exp(arms, horizon, strategy, distr,  n_simulations)
 	return selected_arms, final_avg_reward, count_arms
 end
 
-function evaluate(arms, horizon, strategy, distr, n_simulations)
+function evaluate(arms, horizon, strategy="epsgreedy", distr = nothing, n_simulations=1000, dynamic_pricing=true)
     final_arms = []
     final_avg_reward = zeros(horizon)
     final_avg_regret = zeros(horizon)
     for i in 1:n_simulations
-        selected_arms, avg_reward,  cum_regret = simulate(arms, horizon, distr, strategy)
+        selected_arms, avg_reward,  cum_regret = simulate(arms, horizon, distr, strategy, dynamic_pricing)
         final_arms = [final_arms ; selected_arms]
         final_avg_reward =  final_avg_reward .+ avg_reward
         final_avg_regret = final_avg_regret .+ cum_regret
