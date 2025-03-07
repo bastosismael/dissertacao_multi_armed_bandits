@@ -41,13 +41,13 @@ function epsilon_greedy(arm_avg_reward, eps=0.1)
 end
 
 
-function seq_halving(prices, n, distr, dynamic_pricing=true)
+function seq_halving(arms, n, distr=nothing, dynamic_pricing=true)
     """
     This function was made specifically for the dynamic pricing case
     """
 	avg_reward_vector = []
 	avg_reward = 0
-	K = Dict(k => v for (k,v) ∈ enumerate(prices))
+	K = Dict(k => v for (k,v) ∈ enumerate(arms))
 	means = Dict(i => 0. for i = 1:length(K))
 	A = K
 	L = Int(ceil(log2(length(K))))
@@ -58,9 +58,9 @@ function seq_halving(prices, n, distr, dynamic_pricing=true)
 			for 𝒶 ∈ keys(A)
 				it += 1
 				if dynamic_pricing
-					X = get_reward(A[𝒶], distr) * prices[𝒶]
+					X = get_reward(A[𝒶], distr) * arms[𝒶]
 				else
-					X = Float32(rand(arms[arm], 1)[1])
+					X = Float32(rand(arms[𝒶], 1)[1])
 				end
 				avg_reward = avg_reward + (1/(it+1))*(X - avg_reward)
 				push!(avg_reward_vector, avg_reward)
@@ -89,11 +89,11 @@ function n_k(k, n, K)
     return ceil((1/p_1) * (n-K)/(K+1-k))
 end
 
-function seq_elim(prices, n, distr, dynamic_pricing=true)
+function seq_elim(arms, n, distr=nothing, dynamic_pricing=true)
     """
     This function was made specifically for the dynamic pricing case
     """
-    K = Dict(k => v for (k,v) ∈ enumerate(prices))
+    K = Dict(k => v for (k,v) ∈ enumerate(arms))
     means = Dict(i => 0. for i = 1:length(K))
     A = K
     L = length(K) -1
@@ -106,9 +106,9 @@ function seq_elim(prices, n, distr, dynamic_pricing=true)
             for 𝒶 ∈ keys(A)
 				it += 1
 				if dynamic_pricing
-					X = get_reward(A[𝒶], distr) * prices[𝒶]
+					X = get_reward(A[𝒶], distr) * arms[𝒶]
 				else
-					X = Float32(rand(arms[arm], 1)[1])
+					X = Float32(rand(arms[𝒶], 1)[1])
 				end
 				avg_reward = avg_reward + (1/(it+1))*(X - avg_reward)
 				push!(avg_reward_vector, avg_reward)
@@ -182,13 +182,13 @@ function simulate(arms, n, distribution =  nothing, strategy="epsgreedy", dynami
 	return selected_arms, avg_reward_vector, cum_regret_vector
 end
 
-function simulate_pure_exp(arms, horizon, strategy, distr,  n_simulations)
+function simulate_pure_exp(arms, horizon, strategy, distr=nothing,  n_simulations=1000, dynamic_pricing=true)
 	selected_arms = []
 	for i in 1:n_simulations
 		if strategy=="seq_halving"
-			𝒶, avg_reward = seq_halving(arms, horizon, distr)
+			𝒶, avg_reward = seq_halving(arms, horizon, distr, dynamic_pricing)
 		elseif strategy=="seq_elim"
-			𝒶, avg_reward = seq_elim(arms, horizon, distr)
+			𝒶, avg_reward = seq_elim(arms, horizon, distr, dynamic_pricing)
 		end
 		push!(selected_arms, float(collect(keys(𝒶))[1]))
 		i ==1 ? final_avg_reward =  avg_reward : final_avg_reward += avg_reward
