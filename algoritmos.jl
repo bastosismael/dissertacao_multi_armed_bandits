@@ -132,7 +132,7 @@ function get_reward(price, distribution)
 end
 
 
-function simulate(arms, n, distribution =  nothing, strategy="epsgreedy", dynamic_pricing=true, c = nothing, avg_reward=0)
+function simulate(arms, n, distribution =  nothing, strategy="epsgreedy", dynamic_pricing=true, c = nothing, avg_reward=0, m=100)
     """
 	This function was made specifically for the dynamic pricing case
     By default, the simulation chooses the ε-greedy algorithm and set m=100 in ETC. 
@@ -159,7 +159,7 @@ function simulate(arms, n, distribution =  nothing, strategy="epsgreedy", dynami
 		elseif strategy == "UCB"
 			arm = UCB(arm_avg_reward, arm_counter)
 		elseif strategy == "ETC"
-			arm = ETC(100, arm_avg_reward, iteration)
+			arm = ETC(m, arm_avg_reward, iteration)
 		elseif strategy == "KL-UCB"
 			arm = KL_UCB(arm_avg_reward, arm_counter, iteration+1)
 		elseif strategy == "CONST"
@@ -182,7 +182,9 @@ function simulate(arms, n, distribution =  nothing, strategy="epsgreedy", dynami
 		push!(cum_regret_vector, cum_regret)
 		cum_regret = cum_regret + regret
 		arm_counter[arm] += 1
-		arm_avg_reward[arm] = ((arm_counter[arm] -1) * arm_avg_reward[arm] + reward)/arm_counter[arm]
+		if strategy != "ETC" || iteration < m*length(arms)
+			arm_avg_reward[arm] = ((arm_counter[arm] -1) * arm_avg_reward[arm] + reward)/arm_counter[arm]
+		end
 	end
 	return selected_arms, avg_reward_vector, cum_regret_vector
 end
