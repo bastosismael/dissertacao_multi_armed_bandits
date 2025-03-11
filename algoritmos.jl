@@ -1,4 +1,4 @@
-function UCB(arm_avg_reward, arm_counter, δ=0.05)
+function UCB(arm_avg_reward, arm_counter, δ=1e-8)
 	if iszero(arm_avg_reward)
 		arm = rand(1:length(arm_avg_reward))
 	elseif 0 ∈ arm_counter
@@ -17,6 +17,7 @@ function ETC(m, arm_avg_reward, t)
 	end
 	return arm
 end
+
 
 function greedy(arm_avg_reward)
 	if iszero(arm_avg_reward)
@@ -131,7 +132,7 @@ function get_reward(price, distribution)
 end
 
 
-function simulate(arms, n, distribution =  nothing, strategy="epsgreedy", dynamic_pricing=true)
+function simulate(arms, n, distribution =  nothing, strategy="epsgreedy", dynamic_pricing=true, c = nothing, avg_reward=0)
     """
 	This function was made specifically for the dynamic pricing case
     By default, the simulation chooses the ε-greedy algorithm and set m=100 in ETC. 
@@ -139,13 +140,12 @@ function simulate(arms, n, distribution =  nothing, strategy="epsgreedy", dynami
     See the pluto notebooks to understand the arguments of the function. 
     """
 	if dynamic_pricing
-		prices_wp = Dict(d =>  1 - cdf(distribution, d) for d in arms)
+		prices_wp = Dict(d =>  d*(1 - cdf(distribution, d)) for d in arms)
 		best_arm_mean = findmax(collect(values(prices_wp)))[1]
 	else
 		best_arm_mean = findmax([i.p for i in arms])[1]
 	end
 	selected_arms = []
-	avg_reward = 0
 	avg_reward_vector = []
 	arm_avg_reward = zeros(length(arms))
 	arm_counter = zeros(length(arms))
@@ -162,18 +162,23 @@ function simulate(arms, n, distribution =  nothing, strategy="epsgreedy", dynami
 			arm = ETC(100, arm_avg_reward, iteration)
 		elseif strategy == "KL-UCB"
 			arm = KL_UCB(arm_avg_reward, arm_counter, iteration+1)
+		elseif strategy == "CONST"
+			arm = c
 		end
 		push!(selected_arms, arm)
 		if dynamic_pricing
 			reward = arms[arm]*get_reward(arms[arm], distribution)
-			regret = best_arm_mean - prices_wp[arms[arm]]
+			regret = best_arm_mean - reward
 		else
 			reward = Float32(rand(arms[arm], 1)[1])
-			regret = best_arm_mean - arms[arm].p
+			regret = best_arm_mean - reward
 		end
 		push!(avg_reward_vector, avg_reward)
-		avg_reward = avg_reward + (1/(iteration+1))*(reward - avg_reward)
-
+		if isnothing(c)
+			avg_reward = avg_reward + (1/(iteration+1))*(reward - avg_reward)
+		else
+			avg_reward =  avg_reward + (1/(iteration+1+500))*(reward - avg_reward)
+		end
 		push!(cum_regret_vector, cum_regret)
 		cum_regret = cum_regret + regret
 		arm_counter[arm] += 1
@@ -200,12 +205,12 @@ function simulate_pure_exp(arms, horizon, strategy, distr=nothing,  n_simulation
 	return selected_arms, final_avg_reward, count_arms
 end
 
-function evaluate(arms, horizon, strategy="epsgreedy", distr = nothing, n_simulations=1000, dynamic_pricing=true)
+function evaluate(arms, horizon, strategy="epsgreedy", distr = nothing, n_simulations=1000, dynamic_pricing=true, c=nothing, p_avg_reward=0)
     final_arms = []
     final_avg_reward = zeros(horizon)
     final_avg_regret = zeros(horizon)
     for i in 1:n_simulations
-        selected_arms, avg_reward,  cum_regret = simulate(arms, horizon, distr, strategy, dynamic_pricing)
+        selected_arms, avg_reward,  cum_regret = simulate(arms, horizon, distr, strategy, dynamic_pricing, c, p_avg_reward)
         final_arms = [final_arms ; selected_arms]
         final_avg_reward =  final_avg_reward .+ avg_reward
         final_avg_regret = final_avg_regret .+ cum_regret

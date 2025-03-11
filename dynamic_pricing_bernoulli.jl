@@ -88,8 +88,14 @@ end
 # ╔═╡ 05d378b1-2aa1-46ce-9245-3cf89e296765
 md""" ## ETC"""
 
+# ╔═╡ 14357892-db95-4a40-b66b-3d1b7960613a
+
+
 # ╔═╡ 2ef12246-aac9-42f1-9f41-1aedecfc7719
 final_avg_reward_etc, final_avg_regret_etc, count_etc = evaluate(arms, horizon, "ETC", ν, n_simulations)
+
+# ╔═╡ 7a4960ad-009e-4819-89f3-d23fdf9f9b43
+final_avg_regret_etc
 
 # ╔═╡ 5b9bbbc6-9289-4751-89a9-8c2481e53115
 begin
@@ -127,7 +133,10 @@ md""" # Sequential Halving"""
 # a_1, avg_reward_vector_halving = seq_halving(arms, H1, ν)
 
 # ╔═╡ 798ce1fe-09e3-49c7-b403-10bbf02b379c
-selected_arms_halving, avg_reward_vector_halving, c_arms_halving = simulate_pure_exp(arms, H1, "seq_halving", ν, 1000)
+selected_arms_halving, avg_reward_vector_halving, c_arms_halving = simulate_pure_exp(arms, H1, "seq_halving", ν, n_simulations, true)
+
+# ╔═╡ 71c1d011-5da4-4d93-ad91-4a265486b78e
+length(avg_reward_vector_halving)
 
 # ╔═╡ 0d1fbce9-d4cb-48c1-947f-9ebd293fe1de
 bar(c_arms_halving)
@@ -146,28 +155,36 @@ md""" # Comparação Final"""
 
 # ╔═╡ 73ecc9a1-3a96-43a2-9b12-d13de45a1e59
 begin
-	plot(final_avg_reward_eps[2000:end], label="ε-greedy", dpi=1000)
+	xticks = ([i for i in 0:2000:8000],[i+2000 for i in 0:2000:8000])
+	yticks = ([i for i in 6.25:.25:8],[replace(string(i), "." => ",") for i in 6.25:.25:8])
+	plot(final_avg_reward_eps[2000:end], label="ε-greedy", xticks=xticks, yticks=yticks, dpi=1000)
 	plot!(final_avg_reward_ucb[2000:end], label="UCB")
 	plot!(final_avg_reward_etc[2000:end], label="ETC")
 	hline!([maximum(x -> (1-cdf(ν, x))*x, minimum(support(ν)):60)], label="max")
 	xlabel!("rodada")
 	ylabel!("recompensa")
-	# if save_figures
-	# 	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/reward_exp.png")
-	# end
+	if true
+		savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/reward_exp.png")
+	end
 end
+
+# ╔═╡ d3a88b1d-2fc0-4f49-b002-2475b82890d4
+
 
 # ╔═╡ 77ed2b20-afa2-4e73-8415-61651153dd26
 begin
-	plot((final_avg_regret_eps[1:end]), label="ε-greedy", dpi=1000)
-	plot!((final_avg_regret_ucb[1:end]), label="UCB", linestyle=:dash)
-	plot!((final_avg_regret_etc[1:end]), label="ETC", linestyle=:dot)
+	plot((final_avg_regret_eps[2000:end]), label="ε-greedy", dpi=1000, xticks=xticks)
+	plot!((final_avg_regret_ucb[2000:end]), label="UCB")
+	plot!((final_avg_regret_etc[2000:end]), label="ETC")
 	xlabel!("rodada")
 	ylabel!("arrependimento")
-	# if save_figures
-	# 	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/regret_exp.png")
-	# end
+	if true
+		savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/regret_exp_dp.png")
+	end
 end
+
+# ╔═╡ c5d23ccc-2278-4e4a-b81b-b0696043485c
+
 
 # ╔═╡ 4b6b8126-f5c5-4919-a5bd-770b93b64baf
 begin
@@ -178,27 +195,56 @@ begin
 	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/reward_pure_exp.png")
 end
 
+# ╔═╡ bc071230-6220-4c6d-a8f8-9815eed3b747
+
+
 # ╔═╡ 1942d849-8d44-445f-99dc-67dfb9715d10
 md""" # Cotas de Arrependimento"""
 
 # ╔═╡ 20293213-1d6e-416c-bc02-9c1cecb99897
 md""" ## ETC"""
 
-# ╔═╡ 5d829403-78ef-49ab-bddd-3d595b715652
-arms_wp = Dict(d =>  1 - cdf(ν, d) for d in arms)
+# ╔═╡ 15f6cb58-161e-4990-8b52-041598898e3e
+arms_wp = Dict(d =>  d*(1 - cdf(ν, d)) for d in arms)
+
+# ╔═╡ 211637c7-c690-44c4-b133-cde6563fef4b
+begin
+	arms_mean = collect(values(arms_wp))
+	best_arm_mean = findmax(arms_mean)[1]
+	Δ = best_arm_mean .- arms_mean
+end
+
+# ╔═╡ d8a32d37-7a4e-4d01-b64a-4c71eb01f654
+100 * sum(Δ)
+
+# ╔═╡ 273d207a-6398-4131-a48c-616cf6f4c001
+100 * sum(Δ) + (10000 - 100*20) * sum(Δ .* exp.(- (100 .* Δ.^2)/(4*20^2)))
+
+# ╔═╡ 726f44d8-6d64-45b9-bf71-9f0e2395b956
+begin
+	s = 0
+	for (i,j) in arms_wp
+		s += (best_arm_mean - j)*exp(-(100*(best_arm_mean - j)^2)/(4*20^2))
+	end
+end
+
+# ╔═╡ 8f3d1218-51dc-4b74-9c73-41285dd4bd85
+(10000 - 100*20) * s
 
 # ╔═╡ e7a54193-490e-4a42-a160-6ab3741623cf
 function upper_bound_utc(arms, m, horizon, σ)
 	k = length(arms)
 	arms_mean = collect(values(arms))
-	best_arm_pos = findmax(arms_mean)[2]
 	best_arm_mean = findmax(arms_mean)[1]
 	R = m * sum(best_arm_mean .- arms_mean) + (horizon - m*k)*sum((best_arm_mean .- arms_mean) .* exp.(-(m*  (best_arm_mean .- arms_mean).^2)./(4*σ^2) ) ) 
 	return R
 end
 
+# ╔═╡ 7c5bf599-2783-4996-b1c9-85a41e95e90c
+
+
 # ╔═╡ 3b7869a3-0898-47a0-afd2-56bd716b8044
-upper_bound_utc(arms_wp, 100, 100000, 20)
+upper_bound_utc(arms_wp, 100, 10000, 20)
 
 # ╔═╡ f7195a2f-7434-4247-9dd1-f6a02196964e
 md""" ## UCB"""
@@ -207,14 +253,14 @@ md""" ## UCB"""
 function upper_bound_ucb(arms, n, σ)
 	k = length(arms)
 	arms_mean = collect(values(arms))
-	best_arm_pos = findmax(arms_mean)[2]
 	best_arm_mean = findmax(arms_mean)[1]
 	Δ = best_arm_mean .- arms_mean
-	R = 3 * sum(Δ) + sum(16*σ^2*log(n) ./ filter(!iszero, Δ))
+	R = 3 * sum(Δ) + 16*σ^2*log(n)/sum(Δ)
+	print(sum(Δ))
 end
 
 # ╔═╡ f317b1ce-0b18-47bb-86d7-16ff4bc2ac6a
-upper_bound_ucb(arms, 10000, 20)
+upper_bound_ucb(arms_wp, 10000, 20)
 
 # ╔═╡ b8acd513-f50a-41a3-8962-88c799d967ff
 md""" ## Falsa seleção"""
@@ -239,6 +285,72 @@ begin
 	ylabel!("%falsa_selecao")
 	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/prob_false_selection.png")
 end
+
+# ╔═╡ c5a31eba-ec13-4bfa-8b09-1f375986172c
+
+
+# ╔═╡ 459ede99-10a4-4779-bf3d-d11ebd2cccef
+begin
+	global final = 0
+	n_s = 10000
+	for i in 1:n_s
+		𝒶, avg_reward_htc_seq = seq_halving(arms, horizon/2, ν)
+		global avg_reward_htc_explt, final_avg_regret_htc, count_htc = evaluate(arms, Int(horizon/2), "CONST", ν, 1, true, collect(keys(𝒶))[1], avg_reward_htc_seq[end])
+		avg_reward_htc_explt = avg_reward_htc_explt[2:end]
+		avg_reward = [avg_reward_htc_seq; avg_reward_htc_explt]
+		if i ==1
+			global final =  avg_reward
+		else
+			global final += avg_reward
+		end
+	end
+	final = final/n_s
+	println(count_htc)
+end
+
+# ╔═╡ bbce5a63-2fa2-4609-87f5-7b33116a9d6c
+begin
+	finali = 0
+	for i in 1:n_s
+		𝒶, avg_reward_zz_seq = seq_halving(arms, horizon/10, ν)
+		global avg_reward_zz_explt, final_avg_regret_zz, count_zz = evaluate(arms, Int(horizon * 0.9), "CONST", ν, 1, true, collect(keys(𝒶))[1], avg_reward_zz_seq[end])
+		avg_reward_zz_explt = avg_reward_zz_explt[2:end]
+		avg_reward = [avg_reward_zz_seq; avg_reward_zz_explt]
+		if i ==1
+			global finali =  avg_reward
+		else
+			global finali += avg_reward
+		end
+	end
+	finali = finali/n_s
+	println(count_zz)
+end
+
+# ╔═╡ 89bd055f-00dc-4a2d-b786-fb96205c31e3
+
+
+
+begin
+	plot(final_avg_reward_eps[2000:end], label="ε-greedy", xticks=xticks, yticks=yticks, dpi=1000)
+	plot!(final_avg_reward_ucb[2000:end], label="UCB")
+	plot!(final_avg_reward_etc[2000:end], label="ETC")
+	plot!(avg_reward_vector_halving[Int(ceil(0.2*H1)):end], label="metades", dpi=1000)
+	plot!(final[2000:end], label="metadesaa")
+	plot!(finali[2000:end], label="metadosa")
+	hline!([maximum(x -> (1-cdf(ν, x))*x, minimum(support(ν)):60)], label="max")
+	xlabel!("rodada")
+	ylabel!("recompensa")
+	# if true
+	# 	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/reward_exp.png")
+	# end
+end
+
+
+# ╔═╡ d2e82008-86f4-448b-9ab0-7543d999a81e
+final[9000:end]
+
+# ╔═╡ df63a615-df85-4af2-9591-6200f6906a4d
+length(avg_reward_vector_halving)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1597,6 +1709,8 @@ version = "1.4.1+1"
 # ╠═f71182b6-615c-4da4-bbe5-25c6912addfe
 # ╠═6005d5dd-1f8f-4739-af5c-ab78bb0bbc54
 # ╠═05d378b1-2aa1-46ce-9245-3cf89e296765
+# ╠═7a4960ad-009e-4819-89f3-d23fdf9f9b43
+# ╠═14357892-db95-4a40-b66b-3d1b7960613a
 # ╠═2ef12246-aac9-42f1-9f41-1aedecfc7719
 # ╠═5b9bbbc6-9289-4751-89a9-8c2481e53115
 # ╟─e6db5173-2af9-4837-85e3-1e3dd6dfc81d
@@ -1605,6 +1719,7 @@ version = "1.4.1+1"
 # ╠═08759297-30d8-43c1-8235-67064d8f18da
 # ╟─6371080d-e1cb-4322-8f57-39dd67b2d5f7
 # ╠═b58752c7-a456-4958-9594-7f7e02b3ab69
+# ╠═71c1d011-5da4-4d93-ad91-4a265486b78e
 # ╠═798ce1fe-09e3-49c7-b403-10bbf02b379c
 # ╠═0d1fbce9-d4cb-48c1-947f-9ebd293fe1de
 # ╟─ed57b247-16b8-4d64-b11c-8ee09dfb09cf
@@ -1612,12 +1727,21 @@ version = "1.4.1+1"
 # ╠═50844b43-0a25-4c0b-a279-2643ac25fd9c
 # ╟─fd09bace-8539-4da6-8b4c-fdf3788a6244
 # ╠═73ecc9a1-3a96-43a2-9b12-d13de45a1e59
+# ╠═d3a88b1d-2fc0-4f49-b002-2475b82890d4
 # ╠═77ed2b20-afa2-4e73-8415-61651153dd26
+# ╠═c5d23ccc-2278-4e4a-b81b-b0696043485c
 # ╠═4b6b8126-f5c5-4919-a5bd-770b93b64baf
+# ╠═bc071230-6220-4c6d-a8f8-9815eed3b747
 # ╟─1942d849-8d44-445f-99dc-67dfb9715d10
 # ╟─20293213-1d6e-416c-bc02-9c1cecb99897
-# ╠═5d829403-78ef-49ab-bddd-3d595b715652
+# ╠═15f6cb58-161e-4990-8b52-041598898e3e
+# ╠═211637c7-c690-44c4-b133-cde6563fef4b
+# ╠═d8a32d37-7a4e-4d01-b64a-4c71eb01f654
+# ╠═273d207a-6398-4131-a48c-616cf6f4c001
+# ╠═726f44d8-6d64-45b9-bf71-9f0e2395b956
+# ╠═8f3d1218-51dc-4b74-9c73-41285dd4bd85
 # ╠═e7a54193-490e-4a42-a160-6ab3741623cf
+# ╠═7c5bf599-2783-4996-b1c9-85a41e95e90c
 # ╠═3b7869a3-0898-47a0-afd2-56bd716b8044
 # ╟─f7195a2f-7434-4247-9dd1-f6a02196964e
 # ╠═628fd7a5-fbcb-4175-8a40-2b1322994986
@@ -1627,5 +1751,11 @@ version = "1.4.1+1"
 # ╠═a20e0642-04dc-4237-8559-56594fc713c2
 # ╠═e8ebb78e-8e15-4608-93d1-cfa78d2f456b
 # ╠═f273f207-2bed-4fd5-92d8-4011c464e78f
+# ╠═c5a31eba-ec13-4bfa-8b09-1f375986172c
+# ╠═459ede99-10a4-4779-bf3d-d11ebd2cccef
+# ╠═bbce5a63-2fa2-4609-87f5-7b33116a9d6c
+# ╠═89bd055f-00dc-4a2d-b786-fb96205c31e3
+# ╠═d2e82008-86f4-448b-9ab0-7543d999a81e
+# ╠═df63a615-df85-4af2-9591-6200f6906a4d
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
