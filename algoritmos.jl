@@ -88,6 +88,7 @@ function seq_halving(arms, n, distr=nothing, dynamic_pricing=true, regret=false)
     	return A, avg_reward_vector, cum_regret_vector 
 	else
 		return A, avg_reward_vector
+	end
 end
 
 
@@ -145,7 +146,7 @@ function get_reward(price, distribution)
 end
 
 
-function simulate(arms, n, distribution =  nothing, strategy="epsgreedy", dynamic_pricing=true, c = nothing, avg_reward=0, m=100)
+function simulate(arms, n, distribution =  nothing, strategy="epsgreedy", dynamic_pricing=true, c = nothing, avg_reward=0, cum_regret=0, m=100)
     """
 	This function was made specifically for the dynamic pricing case
     By default, the simulation chooses the ε-greedy algorithm and set m=100 in ETC. 
@@ -162,7 +163,6 @@ function simulate(arms, n, distribution =  nothing, strategy="epsgreedy", dynami
 	avg_reward_vector = []
 	arm_avg_reward = zeros(length(arms))
 	arm_counter = zeros(length(arms))
-	cum_regret = 0
 	cum_regret_vector = []
 	for iteration in 0:n-1
 		if strategy == "epsgreedy"
@@ -220,12 +220,12 @@ function simulate_pure_exp(arms, horizon, strategy, distr=nothing,  n_simulation
 	return selected_arms, final_avg_reward, count_arms
 end
 
-function evaluate(arms, horizon, strategy="epsgreedy", distr = nothing, n_simulations=1000, dynamic_pricing=true, c=nothing, p_avg_reward=0)
+function evaluate(arms, horizon, strategy="epsgreedy", distr = nothing, n_simulations=1000, dynamic_pricing=true, c=nothing, p_avg_reward=0, p_cum_regret=0)
     final_arms = []
     final_avg_reward = zeros(horizon)
     final_avg_regret = zeros(horizon)
     for i in 1:n_simulations
-        selected_arms, avg_reward,  cum_regret = simulate(arms, horizon, distr, strategy, dynamic_pricing, c, p_avg_reward)
+        selected_arms, avg_reward,  cum_regret = simulate(arms, horizon, distr, strategy, dynamic_pricing, c, p_avg_reward, p_cum_regret)
         final_arms = [final_arms ; selected_arms]
         final_avg_reward =  final_avg_reward .+ avg_reward
         final_avg_regret = final_avg_regret .+ cum_regret
