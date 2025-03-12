@@ -1,3 +1,5 @@
+using ProgressLogging
+
 function UCB(arm_avg_reward, arm_counter, δ=1e-8)
 	if iszero(arm_avg_reward)
 		arm = rand(1:length(arm_avg_reward))
@@ -204,7 +206,7 @@ end
 
 function simulate_pure_exp(arms, horizon, strategy, distr=nothing,  n_simulations=1000, dynamic_pricing=true)
 	selected_arms = []
-	for i in 1:n_simulations
+	@progress for i in 1:n_simulations
 		if strategy=="seq_halving"
 			𝒶, avg_reward = seq_halving(arms, horizon, distr, dynamic_pricing)
 		elseif strategy=="seq_elim"
@@ -224,7 +226,7 @@ function evaluate(arms, horizon, strategy="epsgreedy", distr = nothing, n_simula
     final_arms = []
     final_avg_reward = zeros(horizon)
     final_avg_regret = zeros(horizon)
-    for i in 1:n_simulations
+    @progress for i in 1:n_simulations
         selected_arms, avg_reward,  cum_regret = simulate(arms, horizon, distr, strategy, dynamic_pricing, c, p_avg_reward, p_cum_regret)
         final_arms = [final_arms ; selected_arms]
         final_avg_reward =  final_avg_reward .+ avg_reward
