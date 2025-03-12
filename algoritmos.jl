@@ -42,12 +42,20 @@ function epsilon_greedy(arm_avg_reward, eps=0.1)
 end
 
 
-function seq_halving(arms, n, distr=nothing, dynamic_pricing=true)
+function seq_halving(arms, n, distr=nothing, dynamic_pricing=true, regret=false)
     """
     This function was made specifically for the dynamic pricing case
     """
+		if dynamic_pricing
+		prices_wp = Dict(d =>  d*(1 - cdf(distribution, d)) for d in arms)
+		best_arm_mean = findmax(collect(values(prices_wp)))[1]
+	else
+		best_arm_mean = findmax([i.p for i in arms])[1]
+	end
 	avg_reward_vector = []
+	cum_regret_vector = []
 	avg_reward = 0
+	cum_regret = 0
 	K = Dict(k => v for (k,v) ∈ enumerate(arms))
 	means = Dict(i => 0. for i = 1:length(K))
 	A = K
@@ -63,8 +71,10 @@ function seq_halving(arms, n, distr=nothing, dynamic_pricing=true)
 				else
 					X = Float32(rand(arms[𝒶], 1)[1])
 				end
-				avg_reward = avg_reward + (1/(it+1))*(X - avg_reward)
+				avg_reward += (1/(it+1))*(X - avg_reward)
+				cum_regret += best_arm_mean - X
 				push!(avg_reward_vector, avg_reward)
+				push!(cum_regret_vector, cum_regret)
 				means[𝒶] += X
 			end
 		end
@@ -74,7 +84,10 @@ function seq_halving(arms, n, distr=nothing, dynamic_pricing=true)
 		A = Dict(k => v for (k,v) in A if k ∈ top)
 		means = Dict(i => 0. for i ∈ keys(A))
 	end
-    return A, avg_reward_vector
+	if regret
+    	return A, avg_reward_vector, cum_regret_vector 
+	else
+		return A, avg_reward_vector
 end
 
 
