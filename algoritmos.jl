@@ -47,7 +47,7 @@ function seq_halving(arms, n, distr=nothing, dynamic_pricing=true, regret=false)
     This function was made specifically for the dynamic pricing case
     """
 		if dynamic_pricing
-		prices_wp = Dict(d =>  d*(1 - cdf(distribution, d)) for d in arms)
+		prices_wp = Dict(d =>  d*(1 - cdf(distr, d)) for d in arms)
 		best_arm_mean = findmax(collect(values(prices_wp)))[1]
 	else
 		best_arm_mean = findmax([i.p for i in arms])[1]
