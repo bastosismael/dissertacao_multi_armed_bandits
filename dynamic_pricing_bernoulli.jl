@@ -4,33 +4,21 @@
 using Markdown
 using InteractiveUtils
 
-# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
-macro bind(def, element)
-    #! format: off
-    quote
-        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
-        local el = $(esc(element))
-        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
-        el
-    end
-    #! format: on
-end
-
 # ╔═╡ fcb95bc0-54f6-11ef-0a04-f53827244c1d
 using Distributions, StatsBase, Plots, Interact, PlutoUI
 
+# ╔═╡ e8ebb78e-8e15-4608-93d1-cfa78d2f456b
+using ProgressLogging
+
 # ╔═╡ 2635dd39-7bfa-4d02-a078-f0d111a5bbb8
 include("algoritmos.jl")
-
-# ╔═╡ 88f8bfd5-ecad-4978-9ca6-4cede808cf56
-save_figures = false
 
 # ╔═╡ 4da429d9-fd60-402d-ae15-c0398584548d
 md""" # Definições"""
 
 # ╔═╡ f8ce3159-92ac-4d80-bd80-8fe33f064c1c
 begin
-	n_simulations = 1000
+	n_simulations = 20000
 	horizon = 10000 
 	n_arms = 20
 	arms = [i*2 for i in 1:n_arms]
@@ -45,7 +33,7 @@ md""" # Exemplo Exponencial"""
 
 # ╔═╡ 16d656c8-ec66-4a81-ba49-91efafc29873
 begin
-	plot(x -> cdf(ν, x), minimum(support(ν)):0.01:60, dpi=1000)
+	plot(x -> cdf(ν, x), minimum(support(ν)):0.01:60, dpi=300)
 	xlabel!("preço")
 	ylabel!("P(S≤x)")
 	# if save_figures
@@ -66,98 +54,109 @@ end
 # ╔═╡ aaf0b029-7016-41c4-bb4c-2ad199d053e5
 print("Max: $(maximum(x -> (1-cdf(ν, x))*x, minimum(support(ν)):60)) \nArgmax: $(argmax(x -> (1-cdf(ν, x))*x, minimum(support(ν)):60))")
 
-# ╔═╡ e0bda4d8-6a24-4f91-b400-3a48617e44b7
-(1-cdf(ν, 20))
-
 # ╔═╡ 691e426c-be3c-4eee-9e20-019b3634b896
 md""" ## UCB"""
 
 # ╔═╡ f71182b6-615c-4da4-bbe5-25c6912addfe
+# ╠═╡ disabled = true
+#=╠═╡
 final_avg_reward_ucb, final_avg_regret_ucb, count_ucb = evaluate(arms, horizon, "UCB", ν, n_simulations)
+  ╠═╡ =#
 
 # ╔═╡ 6005d5dd-1f8f-4739-af5c-ab78bb0bbc54
+# ╠═╡ disabled = true
+#=╠═╡
 begin
-	bar(count_ucb, dpi=1000, labels="", grid=false)
+	bar(count_ucb, dpi=300, labels="", grid=false)
 	xlabel!("preço")
 	ylabel!("proporção")
-	# if save_figures
-	# 	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_ucb_exp.png")
-	# end
+	if true
+		savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_ucb_exp.png")
+	end
 end
+  ╠═╡ =#
 
 # ╔═╡ 05d378b1-2aa1-46ce-9245-3cf89e296765
 md""" ## ETC"""
 
-# ╔═╡ 14357892-db95-4a40-b66b-3d1b7960613a
-
-
 # ╔═╡ 2ef12246-aac9-42f1-9f41-1aedecfc7719
+# ╠═╡ disabled = true
+#=╠═╡
 final_avg_reward_etc, final_avg_regret_etc, count_etc = evaluate(arms, horizon, "ETC", ν, n_simulations)
-
-# ╔═╡ 7a4960ad-009e-4819-89f3-d23fdf9f9b43
-final_avg_regret_etc
+  ╠═╡ =#
 
 # ╔═╡ 5b9bbbc6-9289-4751-89a9-8c2481e53115
+# ╠═╡ disabled = true
+#=╠═╡
 begin
 	bar(count_etc, dpi=1000, labels="", grid=false)
 	xlabel!("preço")
 	ylabel!("proporção")
-	# if save_figures
-	# 	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_etc_exp.png")
-	# end
+	if true
+		savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_etc_exp.png")
+	end
 end
+  ╠═╡ =#
 
 # ╔═╡ e6db5173-2af9-4837-85e3-1e3dd6dfc81d
 md""" ## ε-greedy"""
 
 # ╔═╡ f42801fa-80b0-46d3-8a6e-3a75eab6ce46
+# ╠═╡ disabled = true
+#=╠═╡
 final_avg_reward_eps, final_avg_regret_eps, count_eps = evaluate(arms, horizon, "epsgreedy", ν, n_simulations)
+  ╠═╡ =#
 
 # ╔═╡ 4caf23cb-6326-4774-9506-4d71c3eda537
+# ╠═╡ disabled = true
+#=╠═╡
 begin
-	bar(count_eps, dpi=1000, labels="", grid=false)
+	bar(count_eps, dpi=300, labels="", grid=false)
 	xlabel!("preço")
 	ylabel!("proporção")
-	# if save_figures
-	# 	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_eps_exp.png")
-	# end
+	if true
+		savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_eps_exp.png")
+	end
 end
-
-# ╔═╡ 08759297-30d8-43c1-8235-67064d8f18da
-md"""Horizonte:  $(@bind H1 Slider(100:100:10000, default=10, show_value=true))"""
+  ╠═╡ =#
 
 # ╔═╡ 6371080d-e1cb-4322-8f57-39dd67b2d5f7
 md""" # Sequential Halving"""
 
-# ╔═╡ b58752c7-a456-4958-9594-7f7e02b3ab69
-# a_1, avg_reward_vector_halving = seq_halving(arms, H1, ν)
-
 # ╔═╡ 798ce1fe-09e3-49c7-b403-10bbf02b379c
-selected_arms_halving, avg_reward_vector_halving, c_arms_halving = simulate_pure_exp(arms, H1, "seq_halving", ν, n_simulations, true)
-
-# ╔═╡ 71c1d011-5da4-4d93-ad91-4a265486b78e
-length(avg_reward_vector_halving)
+selected_arms_halving, avg_reward_vector_halving, c_arms_halving = simulate_pure_exp(arms, horizon, "seq_halving", ν, n_simulations, true)
 
 # ╔═╡ 0d1fbce9-d4cb-48c1-947f-9ebd293fe1de
-bar(c_arms_halving)
+begin
+	bar(c_arms_halving, dpi=300, label=nothing)
+	xlabel!("preço")
+	ylabel!("proporção")
+	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_seqhalving_.png")
+end
 
 # ╔═╡ ed57b247-16b8-4d64-b11c-8ee09dfb09cf
 md""" # Sequential Elimination"""
 
 # ╔═╡ 86bc64a2-7446-4654-8192-38f8b5090aff
-selected_arms_elim, avg_reward_vector_elim, c_arms_elim = simulate_pure_exp(arms, H1, "seq_elim", ν, 1000)
+selected_arms_elim, avg_reward_vector_elim, c_arms_elim = simulate_pure_exp(arms, horizon, "seq_elim", ν, n_simulations, true)
 
 # ╔═╡ 50844b43-0a25-4c0b-a279-2643ac25fd9c
-bar(c_arms_elim)
+begin
+	bar(c_arms_elim, dpi=300, label=nothing)
+	xlabel!("preço")
+	ylabel!("proporção")
+	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_seqelim_.png")
+end
 
 # ╔═╡ fd09bace-8539-4da6-8b4c-fdf3788a6244
 md""" # Comparação Final"""
 
 # ╔═╡ 73ecc9a1-3a96-43a2-9b12-d13de45a1e59
+#=╠═╡
 begin
 	xticks = ([i for i in 0:2000:8000],[i+2000 for i in 0:2000:8000])
 	yticks = ([i for i in 6.25:.25:8],[replace(string(i), "." => ",") for i in 6.25:.25:8])
-	plot(final_avg_reward_eps[2000:end], label="ε-greedy", xticks=xticks, yticks=yticks, dpi=1000)
+	plot(final_avg_reward_eps[2000:end], label="ε-guloso", xticks=xticks, yticks=yticks, dpi=1000)
 	plot!(final_avg_reward_ucb[2000:end], label="UCB")
 	plot!(final_avg_reward_etc[2000:end], label="ETC")
 	hline!([maximum(x -> (1-cdf(ν, x))*x, minimum(support(ν)):60)], label="max")
@@ -167,11 +166,10 @@ begin
 		savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/reward_exp.png")
 	end
 end
-
-# ╔═╡ d3a88b1d-2fc0-4f49-b002-2475b82890d4
-
+  ╠═╡ =#
 
 # ╔═╡ 77ed2b20-afa2-4e73-8415-61651153dd26
+#=╠═╡
 begin
 	plot((final_avg_regret_eps[2000:end]), label="ε-greedy", dpi=1000, xticks=xticks)
 	plot!((final_avg_regret_ucb[2000:end]), label="UCB")
@@ -182,21 +180,21 @@ begin
 		savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/regret_exp_dp.png")
 	end
 end
+  ╠═╡ =#
 
 # ╔═╡ c5d23ccc-2278-4e4a-b81b-b0696043485c
-
+#=╠═╡
+final_avg_regret_ucb[end]
+  ╠═╡ =#
 
 # ╔═╡ 4b6b8126-f5c5-4919-a5bd-770b93b64baf
 begin
-	plot(avg_reward_vector_halving[Int(ceil(0.2*H1)):end], label="metades", dpi=1000)
-	plot!(avg_reward_vector_elim[Int(ceil(0.2*H1)):end], label="sequencial")
+	plot(avg_reward_vector_halving[Int(ceil(0.2*horizon)):end], label="metades", dpi=1000)
+	plot!(avg_reward_vector_elim[Int(ceil(0.2*horizon)):end], label="sequencial")
 	xlabel!("rodada")
 	ylabel!("recompensa")
 	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/reward_pure_exp.png")
 end
-
-# ╔═╡ bc071230-6220-4c6d-a8f8-9815eed3b747
-
 
 # ╔═╡ 1942d849-8d44-445f-99dc-67dfb9715d10
 md""" # Cotas de Arrependimento"""
@@ -207,32 +205,8 @@ md""" ## ETC"""
 # ╔═╡ 15f6cb58-161e-4990-8b52-041598898e3e
 arms_wp = Dict(d =>  d*(1 - cdf(ν, d)) for d in arms)
 
-# ╔═╡ 211637c7-c690-44c4-b133-cde6563fef4b
-begin
-	arms_mean = collect(values(arms_wp))
-	best_arm_mean = findmax(arms_mean)[1]
-	Δ = best_arm_mean .- arms_mean
-end
-
-# ╔═╡ d8a32d37-7a4e-4d01-b64a-4c71eb01f654
-100 * sum(Δ)
-
-# ╔═╡ 273d207a-6398-4131-a48c-616cf6f4c001
-100 * sum(Δ) + (10000 - 100*20) * sum(Δ .* exp.(- (100 .* Δ.^2)/(4*20^2)))
-
-# ╔═╡ 726f44d8-6d64-45b9-bf71-9f0e2395b956
-begin
-	s = 0
-	for (i,j) in arms_wp
-		s += (best_arm_mean - j)*exp(-(100*(best_arm_mean - j)^2)/(4*20^2))
-	end
-end
-
-# ╔═╡ 8f3d1218-51dc-4b74-9c73-41285dd4bd85
-(10000 - 100*20) * s
-
 # ╔═╡ e7a54193-490e-4a42-a160-6ab3741623cf
-function upper_bound_utc(arms, m, horizon, σ)
+function upper_bound_etc(arms, m, horizon, σ)
 	k = length(arms)
 	arms_mean = collect(values(arms))
 	best_arm_mean = findmax(arms_mean)[1]
@@ -240,11 +214,8 @@ function upper_bound_utc(arms, m, horizon, σ)
 	return R
 end
 
-# ╔═╡ 7c5bf599-2783-4996-b1c9-85a41e95e90c
-
-
 # ╔═╡ 3b7869a3-0898-47a0-afd2-56bd716b8044
-upper_bound_utc(arms_wp, 100, 10000, 20)
+upper_bound_etc(arms_wp, 100, 10000, 20)
 
 # ╔═╡ f7195a2f-7434-4247-9dd1-f6a02196964e
 md""" ## UCB"""
@@ -256,7 +227,6 @@ function upper_bound_ucb(arms, n, σ)
 	best_arm_mean = findmax(arms_mean)[1]
 	Δ = best_arm_mean .- arms_mean
 	R = 3 * sum(Δ) + 16*σ^2*log(n)/sum(Δ)
-	print(sum(Δ))
 end
 
 # ╔═╡ f317b1ce-0b18-47bb-86d7-16ff4bc2ac6a
@@ -274,22 +244,51 @@ end
 # ╔═╡ a20e0642-04dc-4237-8559-56594fc713c2
 
 
-# ╔═╡ e8ebb78e-8e15-4608-93d1-cfa78d2f456b
-
-
 # ╔═╡ f273f207-2bed-4fd5-92d8-4011c464e78f
+# ╠═╡ disabled = true
+#=╠═╡
 begin
 	plot(n -> 1-freq_error(arms, n, "seq_halving", ν, n_simulations), 100:100:10000, dpi=1000, label="metades")
 	plot!(n -> 1-freq_error(arms, n, "seq_elim", ν, n_simulations), 1000:100:10000, dpi=1000, label="sequencial")
 	xlabel!("horizonte")
 	ylabel!("%falsa_selecao")
-	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/prob_false_selection.png")
+	# savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/prob_false_selection.png")
+end
+  ╠═╡ =#
+
+# ╔═╡ 0f4b7677-f236-46d6-a4a7-b8ab407900b9
+function SHTC(p_expl = 0.5)
+	final_reward = []
+	@progress for i in 1:n_simulations
+		𝒶, avg_reward_htc_seq, cum_regret_htc_seq = seq_halving(arms, trunc(Int, p_expl*horizon), ν, true, true)
+		avg_reward_htc_explt, cum_regret_htc, count_htc = evaluate(arms, trunc(Int, horizon * (1-p_expl)), "CONST", ν, 1, true, collect(keys(𝒶))[1], avg_reward_htc_seq[end], cum_regret_htc_seq[end])
+		avg_reward = [avg_reward_htc_seq; avg_reward_htc_explt]
+		cum_regret = [cum_regret_htc_seq; cum_regret_htc]
+		if i ==1
+			final_reward =  avg_reward
+			final_regret = cum_regret
+		else
+			final_reward += avg_reward
+			final_regret += cum_regret
+		end
+	end
+	final_reward = final_reward./n_simulations
+	final_regret =final_regret./n_simulations
+	return (final_reward, final_regret)
 end
 
-# ╔═╡ c5a31eba-ec13-4bfa-8b09-1f375986172c
-
+# ╔═╡ 3545c3d7-8663-4dfa-b3a0-d6bc6a8dc052
+begin
+	reward_shtc = Dict(k => [] for k in .1:.2:.9)
+	regret_shtc = Dict(k => [] for k in .1:.2:.9)
+	for p in keys(reward_shtc)
+		reward_shtc[p], regret_shtc[p] = SHTC(p)
+	end
+end
 
 # ╔═╡ 459ede99-10a4-4779-bf3d-d11ebd2cccef
+# ╠═╡ disabled = true
+#=╠═╡
 begin
 	global final = 0
 	n_s = 10000
@@ -305,52 +304,88 @@ begin
 		end
 	end
 	final = final/n_s
-	println(count_htc)
 end
-
-# ╔═╡ bbce5a63-2fa2-4609-87f5-7b33116a9d6c
-begin
-	finali = 0
-	for i in 1:n_s
-		𝒶, avg_reward_zz_seq = seq_halving(arms, horizon/10, ν)
-		global avg_reward_zz_explt, final_avg_regret_zz, count_zz = evaluate(arms, Int(horizon * 0.9), "CONST", ν, 1, true, collect(keys(𝒶))[1], avg_reward_zz_seq[end])
-		avg_reward_zz_explt = avg_reward_zz_explt[2:end]
-		avg_reward = [avg_reward_zz_seq; avg_reward_zz_explt]
-		if i ==1
-			global finali =  avg_reward
-		else
-			global finali += avg_reward
-		end
-	end
-	finali = finali/n_s
-	println(count_zz)
-end
+  ╠═╡ =#
 
 # ╔═╡ 89bd055f-00dc-4a2d-b786-fb96205c31e3
-
-
-
+#=╠═╡
 begin
-	plot(final_avg_reward_eps[2000:end], label="ε-greedy", xticks=xticks, yticks=yticks, dpi=1000)
+	plot(final_avg_reward_eps[2000:end], label="ε-guloso", xticks=xticks, yticks=yticks, dpi=1000)
 	plot!(final_avg_reward_ucb[2000:end], label="UCB")
 	plot!(final_avg_reward_etc[2000:end], label="ETC")
 	plot!(avg_reward_vector_halving[Int(ceil(0.2*H1)):end], label="metades", dpi=1000)
-	plot!(final[2000:end], label="metadesaa")
-	plot!(finali[2000:end], label="metadosa")
+	plot!(reward_shtc[0.5][2000:end], label="SHTC")
+	#plot!(finali[2000:end], label="metadosa")
 	hline!([maximum(x -> (1-cdf(ν, x))*x, minimum(support(ν)):60)], label="max")
 	xlabel!("rodada")
 	ylabel!("recompensa")
 	# if true
-	# 	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/reward_exp.png")
+	# 	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/shtc_comp.png")
+	# end
+end
+
+  ╠═╡ =#
+
+# ╔═╡ d2e82008-86f4-448b-9ab0-7543d999a81e
+begin
+	local x = 1
+	xticks_f = ([i for i in 0:1000:8000],[i+1000 for i in 0:1000:8000])
+	for (k,v) in sort(reward_shtc, byvalue=false, rev=true)
+		if x == 1
+			plot(reward_shtc[k][1000:end], label="$(k*100)%", dpi=300, xticks=xticks_f)
+		else
+			plot!(v[1000:end], label = "$(k*100)%")
+		end
+		x += 1
+	end
+	hline!([maximum(x -> (1-cdf(ν, x))*x, minimum(support(ν)):60)], label="max")
+	xlabel!("rodada")
+	ylabel!("recompensa")
+	# if true
+	# 	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/shtc_comp_2.png")
 	# end
 end
 
 
-# ╔═╡ d2e82008-86f4-448b-9ab0-7543d999a81e
-final[9000:end]
+# ╔═╡ 354a2e0b-b7d7-46a6-8b3a-d562538a0ce5
+begin
+	local x = 1
+	xticks_z = ([i for i in 0:500:2000],[i+8000 for i in 0:500:2000])
+	for (k,v) in sort(reward_shtc, byvalue=false, rev=true)
+		if x == 1
+			plot(reward_shtc[k][8000:end], label="$(k*100)%", dpi=300, xticks=xticks_z)
+		else
+			plot!(v[8000:end], label = "$(k*100)%")
+		end
+		x += 1
+	end
+	hline!([maximum(x -> (1-cdf(ν, x))*x, minimum(support(ν)):60)], label="max")
+	xlabel!("rodada")
+	ylabel!("recompensa")
+	# if true
+	# 	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/shtc_comp_2.png")
+	# end
+end
 
-# ╔═╡ df63a615-df85-4af2-9591-6200f6906a4d
-length(avg_reward_vector_halving)
+# ╔═╡ ea9a2cb3-5ad0-4f91-ab35-50e68f126a3c
+begin
+
+	#plot(regret_shtc[0.9], label="0.9", dpi=300)
+	acc = 1
+	for (k,v) in sort(regret_shtc, byvalue=false, rev=true)
+		if acc == 1
+			plot(v, label = "$(k*100)%", dpi=300)
+		else
+			plot!(v, label = "$(k*100)%")
+		end
+		acc += 1
+	end
+	xlabel!("rodada")
+	ylabel!("arrependimento")
+	if true
+		savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/shtc_comp_regret.png")
+	end
+end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -359,6 +394,7 @@ Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Interact = "c601a237-2ae4-5e1e-952c-7a85b0c7eef1"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+ProgressLogging = "33c8b6b6-d38a-422a-b730-caa89a2f386c"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
@@ -366,6 +402,7 @@ Distributions = "~0.25.117"
 Interact = "~0.10.5"
 Plots = "~1.40.5"
 PlutoUI = "~0.7.60"
+ProgressLogging = "~0.1.4"
 StatsBase = "~0.34.4"
 """
 
@@ -375,7 +412,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.3"
 manifest_format = "2.0"
-project_hash = "96ccd2b45843833887fde2950bc36181a7ea077f"
+project_hash = "5db3e8e21aac40e0f18a44ae9127b25f63524901"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]
@@ -1115,6 +1152,12 @@ deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 version = "1.11.0"
 
+[[deps.ProgressLogging]]
+deps = ["Logging", "SHA", "UUIDs"]
+git-tree-sha1 = "80d919dee55b9c50e8d9e2da5eeafff3fe58b539"
+uuid = "33c8b6b6-d38a-422a-b730-caa89a2f386c"
+version = "0.1.4"
+
 [[deps.PtrArrays]]
 git-tree-sha1 = "1d36ef11a9aaf1e8b74dacc6a731dd1de8fd493d"
 uuid = "43287f4e-b6f4-7ad1-bb20-aadabca52c3d"
@@ -1696,7 +1739,6 @@ version = "1.4.1+1"
 # ╔═╡ Cell order:
 # ╠═fcb95bc0-54f6-11ef-0a04-f53827244c1d
 # ╠═2635dd39-7bfa-4d02-a078-f0d111a5bbb8
-# ╠═88f8bfd5-ecad-4978-9ca6-4cede808cf56
 # ╟─4da429d9-fd60-402d-ae15-c0398584548d
 # ╠═f8ce3159-92ac-4d80-bd80-8fe33f064c1c
 # ╟─7619863c-79c2-4d0d-8a4e-436b975a4688
@@ -1704,22 +1746,16 @@ version = "1.4.1+1"
 # ╠═16d656c8-ec66-4a81-ba49-91efafc29873
 # ╠═ef031947-0f35-4ffe-bf01-d6a58d3e1683
 # ╠═aaf0b029-7016-41c4-bb4c-2ad199d053e5
-# ╠═e0bda4d8-6a24-4f91-b400-3a48617e44b7
 # ╟─691e426c-be3c-4eee-9e20-019b3634b896
 # ╠═f71182b6-615c-4da4-bbe5-25c6912addfe
 # ╠═6005d5dd-1f8f-4739-af5c-ab78bb0bbc54
 # ╠═05d378b1-2aa1-46ce-9245-3cf89e296765
-# ╠═7a4960ad-009e-4819-89f3-d23fdf9f9b43
-# ╠═14357892-db95-4a40-b66b-3d1b7960613a
 # ╠═2ef12246-aac9-42f1-9f41-1aedecfc7719
 # ╠═5b9bbbc6-9289-4751-89a9-8c2481e53115
 # ╟─e6db5173-2af9-4837-85e3-1e3dd6dfc81d
 # ╠═f42801fa-80b0-46d3-8a6e-3a75eab6ce46
 # ╠═4caf23cb-6326-4774-9506-4d71c3eda537
-# ╠═08759297-30d8-43c1-8235-67064d8f18da
 # ╟─6371080d-e1cb-4322-8f57-39dd67b2d5f7
-# ╠═b58752c7-a456-4958-9594-7f7e02b3ab69
-# ╠═71c1d011-5da4-4d93-ad91-4a265486b78e
 # ╠═798ce1fe-09e3-49c7-b403-10bbf02b379c
 # ╠═0d1fbce9-d4cb-48c1-947f-9ebd293fe1de
 # ╟─ed57b247-16b8-4d64-b11c-8ee09dfb09cf
@@ -1727,21 +1763,13 @@ version = "1.4.1+1"
 # ╠═50844b43-0a25-4c0b-a279-2643ac25fd9c
 # ╟─fd09bace-8539-4da6-8b4c-fdf3788a6244
 # ╠═73ecc9a1-3a96-43a2-9b12-d13de45a1e59
-# ╠═d3a88b1d-2fc0-4f49-b002-2475b82890d4
 # ╠═77ed2b20-afa2-4e73-8415-61651153dd26
 # ╠═c5d23ccc-2278-4e4a-b81b-b0696043485c
 # ╠═4b6b8126-f5c5-4919-a5bd-770b93b64baf
-# ╠═bc071230-6220-4c6d-a8f8-9815eed3b747
 # ╟─1942d849-8d44-445f-99dc-67dfb9715d10
 # ╟─20293213-1d6e-416c-bc02-9c1cecb99897
 # ╠═15f6cb58-161e-4990-8b52-041598898e3e
-# ╠═211637c7-c690-44c4-b133-cde6563fef4b
-# ╠═d8a32d37-7a4e-4d01-b64a-4c71eb01f654
-# ╠═273d207a-6398-4131-a48c-616cf6f4c001
-# ╠═726f44d8-6d64-45b9-bf71-9f0e2395b956
-# ╠═8f3d1218-51dc-4b74-9c73-41285dd4bd85
 # ╠═e7a54193-490e-4a42-a160-6ab3741623cf
-# ╠═7c5bf599-2783-4996-b1c9-85a41e95e90c
 # ╠═3b7869a3-0898-47a0-afd2-56bd716b8044
 # ╟─f7195a2f-7434-4247-9dd1-f6a02196964e
 # ╠═628fd7a5-fbcb-4175-8a40-2b1322994986
@@ -1751,11 +1779,12 @@ version = "1.4.1+1"
 # ╠═a20e0642-04dc-4237-8559-56594fc713c2
 # ╠═e8ebb78e-8e15-4608-93d1-cfa78d2f456b
 # ╠═f273f207-2bed-4fd5-92d8-4011c464e78f
-# ╠═c5a31eba-ec13-4bfa-8b09-1f375986172c
+# ╠═0f4b7677-f236-46d6-a4a7-b8ab407900b9
+# ╠═3545c3d7-8663-4dfa-b3a0-d6bc6a8dc052
 # ╠═459ede99-10a4-4779-bf3d-d11ebd2cccef
-# ╠═bbce5a63-2fa2-4609-87f5-7b33116a9d6c
 # ╠═89bd055f-00dc-4a2d-b786-fb96205c31e3
 # ╠═d2e82008-86f4-448b-9ab0-7543d999a81e
-# ╠═df63a615-df85-4af2-9591-6200f6906a4d
+# ╠═354a2e0b-b7d7-46a6-8b3a-d562538a0ce5
+# ╠═ea9a2cb3-5ad0-4f91-ab35-50e68f126a3c
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

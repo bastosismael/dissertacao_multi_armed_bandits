@@ -17,7 +17,8 @@ macro bind(def, element)
 end
 
 # ╔═╡ fcb95bc0-54f6-11ef-0a04-f53827244c1d
-using Distributions, StatsBase, Plots, Interact, PlutoUI
+using Distributions, StatsBase, Plots, Interact, PlutoUI, ProgressLogging, Distributed
+
 
 # ╔═╡ 2635dd39-7bfa-4d02-a078-f0d111a5bbb8
 include("algoritmos.jl")
@@ -30,7 +31,7 @@ md""" # Definições"""
 
 # ╔═╡ f8ce3159-92ac-4d80-bd80-8fe33f064c1c
 begin
-	n_simulations = 300
+	n_simulations = 10000
 	horizon = 10000 
 	n_arms = 20
 	arms = [i*2 for i in 1:n_arms]
@@ -40,26 +41,45 @@ end
 # ╔═╡ 63059a27-e5bb-4ae3-bd86-8bfcc3ebcc44
 md""" # Considerando uma distribuição discreta sem monotonicidade"""
 
+# ╔═╡ 6a133a0f-acc3-43e2-942d-5672163faf3c
+filter(x -> x != 0 , [0, 0.05, 0, 0.03, 0, 0.1, 0, 0.02, 0, 0.02,
+0, 0.01, 0, 0.02, 0, 0.01, 0, 0.01, 0, 0.06,
+0, 0.2, 0, 0.02, 0, 0.05, 0, 0.3, 0, 0.04,
+0, 0.06, 0, 0, 0, 0, 0, 0, 0, 0 ])
+
+# ╔═╡ 64639f99-24ac-47d4-95ab-553b68991a51
+length([0, 0.05, 0, 0.03, 0, 0.1, 0, 0.02, 0, 0.02,
+0, 0.01, 0, 0.02, 0, 0.01, 0, 0.01, 0, 0.06,
+0, 0.2, 0, 0.02, 0, 0.05, 0, 0.3, 0, 0.04,
+0, 0.06, 0, 0, 0, 0, 0, 0, 0, 0 ])
+
 # ╔═╡ 845873d6-10b9-4beb-8ca3-5aedf3ef9f35
-distr = Categorical([0, 0, 0, 0.1, 0, 0.2, 0, 0, 0, 0, 0, 0, 0.2, 0, 0, 0.3, 0, 0, 0.2, 0 ])
-
-# ╔═╡ 8909291d-d2d9-4afe-9d3c-f247cf632dd5
-plot(x -> (1-cdf(distr, x)), minimum(support(distr)):60)
-
-# ╔═╡ 0e2613b1-74ce-4bc5-b97a-235d104eda28
-distr.p[40]
+distr = Categorical(
+[0, 0.05, 0, 0.03, 0, 0.1, 0, 0.02, 0, 0.02,
+0, 0.01, 0, 0.02, 0, 0.01, 0, 0.01, 0, 0.06,
+0, 0.2, 0, 0.02, 0, 0.05, 0, 0.3, 0, 0.04,
+0, 0.06, 0, 0, 0, 0, 0, 0, 0, 0 ])
 
 # ╔═╡ 0a2db9c6-da17-4346-99bc-7835082c185a
-plot(x -> (1-cdf(distr, x))*x, minimum(support(distr)):60)
+begin
+	plot(arms, [distr.p[a] *a for a ∈ arms], label=nothing)
+	xlabel!("preço")
+	ylabel!("valor esperado da recompensa")
+	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/discreta_exemplo.png")
+end
+	
 
 # ╔═╡ e8aa276f-ef4d-4197-816e-dcdcb472512c
-print("Max: $(maximum(x -> (1-cdf(distr, x))*x, minimum(support(distr)):60)) \nArgmax: $(argmax(x -> (1-cdf(distr, x))*x, minimum(support(distr)):60))")
+print("Max: $(maximum([distr.p[a] *a for a ∈ arms])) \nArgmax: $(arms[argmax([distr.p[a] *a for a ∈ arms])])")
 
 # ╔═╡ d1e9742f-0b64-4627-ab35-3b1706d87941
 md""" ## UCB"""
 
+# ╔═╡ 3e56dcc1-aac4-44bd-9d16-0b933011cfdf
+findmax([i.p for i in [Bernoulli(p) for p in distr.p]])
+
 # ╔═╡ 1d5e7d6c-ba07-470b-a6c2-9d3fe4011cde
-final_avg_reward_ucb, final_avg_regret_ucb, count_ucb = evaluate(arms, horizon, "UCB", distr)
+final_avg_reward_ucb, final_avg_regret_ucb, count_ucb = evaluate(arms, horizon, "UCB", [Bernoulli(p) for p in distr.p], n_simulations, false)
 
 # ╔═╡ 40c9ad97-6ab5-4538-9a4a-b661fd5fe355
 begin
@@ -71,7 +91,10 @@ end
 md""" ## ε-greedy"""
 
 # ╔═╡ dfb4f9d1-fcb7-4985-a39b-47c11e3694ca
-final_avg_reward_eps, final_avg_regret_eps, count_eps = evaluate(arms, horizon, "epsgreedy", distr)
+final_avg_reward_eps, final_avg_regret_eps, count_eps = evaluate(arms, horizon, "epsgreedy", [Bernoulli(p) for p in distr.p], n_simulations, false)
+
+# ╔═╡ ccbff9a8-c9a5-4a5d-bb34-3832e6ee4221
+final_avg_regret_eps
 
 # ╔═╡ dc47d5c0-9fb3-433b-b71d-5059d1127885
 begin
@@ -83,7 +106,7 @@ end
 md""" ## ETC"""
 
 # ╔═╡ da4557ed-9d29-408b-b87a-4906faf28572
-final_avg_reward_etc, final_avg_regret_etc, count_etc = evaluate(arms, horizon, "ETC", distr)
+final_avg_reward_etc, final_avg_regret_etc, count_etc = evaluate(arms, horizon, "ETC", [Bernoulli(p) for p in distr.p], n_simulations, false)
 
 # ╔═╡ e8f86c8a-8116-4de3-9f16-a3d2595ce6c5
 begin
@@ -93,6 +116,35 @@ end
 
 # ╔═╡ 81e72fcf-694b-48ca-9ac9-10d318b76732
 md""" Horizonte:  $(@bind H1 Slider(0:100:10000, default=10, show_value=true)) """
+
+# ╔═╡ 95bf7d83-fde2-460c-b744-7855de6b8c29
+begin
+	xticks = ([i for i in 0:2000:8000],[i+2000 for i in 0:2000:8000])
+	plot(final_avg_reward_eps[2000:end], label="ε-guloso", dpi=300, xticks=xticks)
+	plot!(final_avg_reward_ucb[2000:end], label="UCB")
+	plot!(final_avg_reward_etc[2000:end], label="ETC")
+	hline!([maximum([distr.p[a] *a for a ∈ arms])], label="max")
+	xlabel!("rodada")
+	ylabel!("recompensa")
+	if true
+		savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/reward_disc.png")
+	end
+end
+
+# ╔═╡ 4a09242f-88f9-474a-b778-9794108f4f12
+begin
+	plot((final_avg_regret_eps[2000:end]), label="ε-greedy", dpi=1000, xticks=xticks)
+	plot!((final_avg_regret_ucb[2000:end]), label="UCB")
+	plot!((final_avg_regret_etc[2000:end]), label="ETC")
+	xlabel!("rodada")
+	ylabel!("arrependimento")
+	# if true
+	# 	savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/regret_exp_dp.png")
+	# end
+end
+
+# ╔═╡ af4075ac-18a4-4806-b054-0c3493160a96
+final_avg_regret_eps
 
 # ╔═╡ 06c57b51-91d8-4f6d-803a-08f6668b8fe0
 md""" ## Sequential halving"""
@@ -119,10 +171,12 @@ end
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Interact = "c601a237-2ae4-5e1e-952c-7a85b0c7eef1"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+ProgressLogging = "33c8b6b6-d38a-422a-b730-caa89a2f386c"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
@@ -130,6 +184,7 @@ Distributions = "~0.25.109"
 Interact = "~0.10.5"
 Plots = "~1.40.5"
 PlutoUI = "~0.7.59"
+ProgressLogging = "~0.1.4"
 StatsBase = "~0.34.3"
 """
 
@@ -139,7 +194,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.3"
 manifest_format = "2.0"
-project_hash = "1f642f45849c1994ac74e9ba4cf0c49050b4805f"
+project_hash = "7a2b8dfb6e8d197c0dd17e7f0fdcf82a65487518"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]
@@ -892,6 +947,12 @@ deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 version = "1.11.0"
 
+[[deps.ProgressLogging]]
+deps = ["Logging", "SHA", "UUIDs"]
+git-tree-sha1 = "80d919dee55b9c50e8d9e2da5eeafff3fe58b539"
+uuid = "33c8b6b6-d38a-422a-b730-caa89a2f386c"
+version = "0.1.4"
+
 [[deps.PtrArrays]]
 git-tree-sha1 = "1d36ef11a9aaf1e8b74dacc6a731dd1de8fd493d"
 uuid = "43287f4e-b6f4-7ad1-bb20-aadabca52c3d"
@@ -1489,21 +1550,26 @@ version = "1.4.1+2"
 # ╟─4da429d9-fd60-402d-ae15-c0398584548d
 # ╠═f8ce3159-92ac-4d80-bd80-8fe33f064c1c
 # ╟─63059a27-e5bb-4ae3-bd86-8bfcc3ebcc44
+# ╠═6a133a0f-acc3-43e2-942d-5672163faf3c
+# ╠═64639f99-24ac-47d4-95ab-553b68991a51
 # ╠═845873d6-10b9-4beb-8ca3-5aedf3ef9f35
-# ╠═8909291d-d2d9-4afe-9d3c-f247cf632dd5
-# ╠═0e2613b1-74ce-4bc5-b97a-235d104eda28
 # ╠═0a2db9c6-da17-4346-99bc-7835082c185a
 # ╠═e8aa276f-ef4d-4197-816e-dcdcb472512c
 # ╟─d1e9742f-0b64-4627-ab35-3b1706d87941
+# ╠═3e56dcc1-aac4-44bd-9d16-0b933011cfdf
 # ╠═1d5e7d6c-ba07-470b-a6c2-9d3fe4011cde
 # ╠═40c9ad97-6ab5-4538-9a4a-b661fd5fe355
 # ╟─bcbacf16-45bd-47fd-aa57-1c70bb0d8830
+# ╠═ccbff9a8-c9a5-4a5d-bb34-3832e6ee4221
 # ╠═dfb4f9d1-fcb7-4985-a39b-47c11e3694ca
 # ╠═dc47d5c0-9fb3-433b-b71d-5059d1127885
 # ╠═a89557fc-5a67-4ed6-bec1-e02e6ff477eb
 # ╠═da4557ed-9d29-408b-b87a-4906faf28572
 # ╠═e8f86c8a-8116-4de3-9f16-a3d2595ce6c5
 # ╟─81e72fcf-694b-48ca-9ac9-10d318b76732
+# ╠═95bf7d83-fde2-460c-b744-7855de6b8c29
+# ╠═4a09242f-88f9-474a-b778-9794108f4f12
+# ╠═af4075ac-18a4-4806-b054-0c3493160a96
 # ╟─06c57b51-91d8-4f6d-803a-08f6668b8fe0
 # ╠═f17b2413-d6e3-44c6-aa06-18ee15c9be3f
 # ╟─3a127a3c-fc55-47ee-8211-2de79d59443e
