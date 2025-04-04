@@ -1,6 +1,6 @@
 using Interact, StatsBase, ProgressMeter, Plots, Distributions, LaTeXStrings, JSON
 
-include("algoritmos.jl")
+include("algoritmos_precificacao.jl")
 using Distributed
 
 # Definições 
@@ -41,40 +41,40 @@ end
 open(FILE, "r") do f
     global data = JSON.parse(f)
 end
-final_count = Dict("UCB" => Dict{String, Any}(), "ETC" => Dict{String, Any}(), "epsgreedy" => Dict{String, Any}())
 for alg in algorithms
     println(alg)
-    final_avg_reward[alg], final_avg_regret[alg], final_count[alg] = data["reward"][alg],  data["regret"][alg], sort(data["count"][alg], byvalue=false, rev=true)
+    final_avg_reward[alg], final_avg_regret[alg], final_count[alg] = data["reward"][alg],  data["regret"][alg], Dict(parse(Int, k) => v for (k,v) ∈ pairs(data["count"][alg]))
 end
-final
+
 # UCB
-bar(final_count["UCB"], dpi=300, labels="", grid=false)
+xticks = [i for i in 2:2:40]
+bar(final_count["UCB"], dpi=300, labels="", grid=false, xticks=xticks)
 xlabel!("preço")
 ylabel!("proporção")
 savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_ucb_exp.png")
 
 #ETC
-bar(final_count["ETC"], dpi=300, labels="", grid=false)
+bar(final_count["ETC"], dpi=300, labels="", grid=false, xticks=xticks)
 xlabel!("preço")
 ylabel!("proporção")
 savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_etc_exp.png")
 
 #ϵ-guloso
-bar(final_count["epsgreedy"], dpi=300, labels="", grid=false)
+bar(final_count["epsgreedy"], dpi=300, labels="", grid=false, xticks=xticks)
 xlabel!("preço")
 ylabel!("proporção")
 savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_eps_exp.png")
 
 # Sequential Halving
 selected_arms_halving, avg_reward_vector_halving, c_arms_halving = simulate_pure_exp(arms, horizon, "seq_halving","CDF", ν, n_simulations)
-bar(c_arms_halving, dpi=300, label=nothing)
+bar(c_arms_halving, dpi=300, label=nothing, xticks=xticks)
 xlabel!("preço")
 ylabel!("proporção")
 savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_seqhalving_.png")
 
 # Sequential Elimination
 selected_arms_elim, avg_reward_vector_elim, c_arms_elim = simulate_pure_exp(arms, horizon, "seq_elim", "CDF", ν, n_simulations)
-bar(c_arms_elim, dpi=300, label=nothing)
+bar(c_arms_elim, dpi=300, label=nothing, xticks=xticks)
 xlabel!("preço")
 ylabel!("proporção")
 savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_seqelim_.png")
@@ -119,4 +119,14 @@ xlabel!("t")
 ylabel!(L"\mathrm{RecM}(20.000,t)")
 savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/shtc_comp.png")
 
+# Cotas
 
+function upper_bound_etc(arms, m, n, σ)
+    arms_wp = Dict(d =>  d*get_reward(d, ν) for d in arms)
+	k = length(arms)
+	arms_mean = collect(values(arms_wp))
+	best_arm_mean = findmax(arms_mean)[1]
+	R = m * sum(best_arm_mean .- arms_mean) + (n - m*k)*sum((best_arm_mean .- arms_mean) .* exp.(-(m*  (best_arm_mean .- arms_mean).^2)./(4*σ^2) ) ) 
+	return R
+end
+upper_bound_etc(arms, 100, horizon, 20)

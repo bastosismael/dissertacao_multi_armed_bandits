@@ -44,13 +44,21 @@ function epsilon_greedy(arm_avg_reward, eps=0.1)
 end
 
 
-function seq_halving(n, distr, regret=false)
-	best_arm_mean = findmax([d.p for d ∈ distr])[1]
+function seq_halving(arms, n, distr=nothing, method="CDF", regret=false)
+    """
+    This function was made specifically for the dynamic pricing case
+    """
+	if method == "CDF"
+		prices_wp = Dict(d =>  d*(1 - cdf(distr, d)) for d in arms)
+	else
+		prices_wp = Dict(d =>  d*distr[d] for d in arms)
+	end
+	best_arm_mean = findmax(collect(values(prices_wp)))[1]
 	avg_reward_vector = []
 	cum_regret_vector = []
 	avg_reward = 0
 	cum_regret = 0
-	K = [i for i in 1:length(distr)]
+	K = Dict(k => v for (k,v) ∈ enumerate(arms))
 	means = Dict(i => 0. for i = 1:length(K))
 	A = K
 	L = Int(ceil(log2(length(K))))
@@ -60,7 +68,11 @@ function seq_halving(n, distr, regret=false)
 		for j=1:T_l
 			for 𝒶 ∈ keys(A)
 				it += 1
-				X = rand(distr[𝒶], 1)[1]
+				if method == "CDF"
+					X = get_reward(A[𝒶], distr) * arms[𝒶]
+				else
+					X = get_reward_2(A[𝒶], distr) * arms[𝒶]
+				end
 				avg_reward += (1/(it+1))*(X - avg_reward)
 				cum_regret += best_arm_mean - X
 				push!(avg_reward_vector, avg_reward)
@@ -71,7 +83,7 @@ function seq_halving(n, distr, regret=false)
 		means = Dict(i => v/T_l for (i,v) ∈ means)
 		top = collect(keys(sort(means; byvalue=true, rev=true)))
 		top = top[1:(Int(ceil(length(A)/2)))]
-		A = top
+		A = Dict(k => v for (k,v) in A if k ∈ top)
 		means = Dict(i => 0. for i ∈ keys(A))
 	end
 	if regret
@@ -128,26 +140,51 @@ function seq_elim(arms, n, distr=nothing, method="CDF")
     return A, avg_reward_vector
 end
 
-function simulate(n, best_arm_mean, distr , strategy, c = nothing, avg_reward=0, cum_regret=0, m=100)
+function get_reward(price, distribution)
+    # Reward according to the definition made on the text.
+	prob = 1 - cdf(distribution, price)
+	b = Bernoulli(prob)
+	return rand(b, 1)[1]
+end
+
+function get_reward_2(price, distribution)
+	prob = distribution[price]
+	b = Bernoulli(prob)
+	return rand(b, 1)[1]
+end
+
+function simulate(arms, n, best_arm_mean, distribution =  nothing, strategy="epsgreedy", method="CDF", c = nothing, avg_reward=0, cum_regret=0, m=100,)
+    """
+	This function was made specifically for the dynamic pricing case
+    By default, the simulation chooses the ε-greedy algorithm and set m=100 in ETC. 
+    
+    See the pluto notebooks to understand the arguments of the function. 
+    """
 	selected_arms = []
 	avg_reward_vector = []
-	arm_avg_reward = zeros(length(distr))
-	arm_counter = zeros(length(distr))
+	arm_avg_reward = zeros(length(arms))
+	arm_counter = zeros(length(arms))
 	cum_regret_vector = []
 	for iteration in 0:n-1
 		if strategy == "epsgreedy"
-			𝒶 = epsilon_greedy(arm_avg_reward, 0.1)
+			arm = epsilon_greedy(arm_avg_reward, 0.1)
 		elseif strategy == "greedy"
-			𝒶 = greedy(arm_avg_reward)
+			arm = greedy(arm_avg_reward)
 		elseif strategy == "UCB"
-			𝒶 = UCB(arm_avg_reward, arm_counter)
+			arm = UCB(arm_avg_reward, arm_counter)
 		elseif strategy == "ETC"
-			𝒶 = ETC(m, arm_avg_reward, iteration)
+			arm = ETC(m, arm_avg_reward, iteration)
+		elseif strategy == "KL-UCB"
+			arm = KL_UCB(arm_avg_reward, arm_counter, iteration+1)
 		elseif strategy == "CONST"
-			𝒶 = c
+			arm = c
 		end
-		push!(selected_arms, 𝒶)
-		reward = rand(distr[𝒶], 1)[1]
+		push!(selected_arms, arm)
+		if method == "CDF"
+			reward = arms[arm]*get_reward(arms[arm], distribution)
+		else
+			reward = arms[arm]*get_reward_2(arms[arm], distribution)
+		end
 		regret = best_arm_mean - reward
 		push!(avg_reward_vector, avg_reward)
 		if isnothing(c)
@@ -157,21 +194,21 @@ function simulate(n, best_arm_mean, distr , strategy, c = nothing, avg_reward=0,
 		end
 		push!(cum_regret_vector, cum_regret)
 		cum_regret = cum_regret + regret
-		arm_counter[𝒶] += 1
-		if strategy != "ETC" || iteration < m*length(distr)
-			arm_avg_reward[𝒶] = ((arm_counter[𝒶] -1) * arm_avg_reward[𝒶] + reward)/arm_counter[𝒶]
+		arm_counter[arm] += 1
+		if strategy != "ETC" || iteration < m*length(arms)
+			arm_avg_reward[arm] = ((arm_counter[arm] -1) * arm_avg_reward[arm] + reward)/arm_counter[arm]
 		end
 	end
 	return selected_arms, avg_reward_vector, cum_regret_vector
 end
 
-function simulate_pure_exp(horizon, strategy, distr,  n_simulations=1000)
+function simulate_pure_exp(arms, horizon, strategy, method="CDF", distr=nothing,  n_simulations=1000)
 	selected_arms = []
 	@showprogress for i in 1:n_simulations
 		if strategy=="seq_halving"
-			𝒶, avg_reward = seq_halving(horizon, distr, method)
+			𝒶, avg_reward = seq_halving(arms, horizon, distr, method)
 		elseif strategy=="seq_elim"
-			𝒶, avg_reward = seq_elim(horizon, distr, method)
+			𝒶, avg_reward = seq_elim(arms, horizon, distr, method)
 		end
 		push!(selected_arms, float(collect(keys(𝒶))[1]))
 		i ==1 ? final_avg_reward =  avg_reward : final_avg_reward += avg_reward
@@ -183,13 +220,18 @@ function simulate_pure_exp(horizon, strategy, distr,  n_simulations=1000)
 	return selected_arms, final_avg_reward, count_arms
 end
 
-function evaluate(horizon, strategy, distr, n_simulations=1000, c=nothing, p_avg_reward=0, p_cum_regret=0)
-	best_arm_mean = findmax([d.p for d ∈ distr])[1]
+function evaluate(arms, horizon, strategy="epsgreedy", method="CDF", distr = nothing, n_simulations=1000, c=nothing, p_avg_reward=0, p_cum_regret=0)
+	if method == "CDF"
+		prices_wp = Dict(d =>  d*(1 - cdf(distr, d)) for d in arms)
+	else
+		prices_wp = Dict(d =>  d*distr[d] for d in arms)
+	end
+	best_arm_mean = findmax(collect(values(prices_wp)))[1]
     final_arms = []
     final_avg_reward = zeros(horizon)
     final_avg_regret = zeros(horizon)
     @showprogress for i in 1:n_simulations
-        selected_arms, avg_reward,  cum_regret = simulate(horizon, best_arm_mean, distr, strategy, c, p_avg_reward, p_cum_regret)
+        selected_arms, avg_reward,  cum_regret = simulate(arms, horizon, best_arm_mean, distr, strategy, method, c, p_avg_reward, p_cum_regret)
         final_arms = [final_arms ; selected_arms]
         final_avg_reward =  final_avg_reward .+ avg_reward
         final_avg_regret = final_avg_regret .+ cum_regret
@@ -198,7 +240,7 @@ function evaluate(horizon, strategy, distr, n_simulations=1000, c=nothing, p_avg
     final_avg_regret = final_avg_regret/n_simulations
     count_arms = countmap(final_arms)
 	count_arms = sort(Dict(k=>v/sum(values(count_arms)) for (k,v) ∈ count_arms), byvalue=true, rev=true)
-	count_arms = Dict(k => v for (k,v) ∈ count_arms)
+	count_arms = Dict(arms[k] => v for (k,v) ∈ count_arms)
     return final_avg_reward, final_avg_regret, count_arms
 end
 
