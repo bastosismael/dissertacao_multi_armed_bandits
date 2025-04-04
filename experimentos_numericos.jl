@@ -1,10 +1,10 @@
-using Interact, StatsBase, ProgressMeter, Plots, Distributions, LaTeXStrings
+using Interact, StatsBase, ProgressMeter, Plots, Distributions, LaTeXStrings, JSON
 include("algoritmos.jl")
 
-n_simulations = 20
+n_simulations = 20000
 horizon = 10000 
 n_arms = 10
-φ = 0.01
+φ = 0.0001
 distr = [Bernoulli(0.2 - φ*(i-1)) for i ∈ 1:n_arms]
 
 algorithms = ["UCB", "ETC", "epsgreedy"] 
@@ -17,7 +17,7 @@ final_count = Dict("UCB" => Dict{Int64, Float64}(), "ETC" => Dict{Int64, Float64
 end
 
 # Salvando
-FILE = "results_en.json"
+FILE = "results_en_0001.json"
 open(FILE, "w") do f
     JSON.print(f, Dict("reward" => final_avg_reward,
      "regret" => final_avg_regret,

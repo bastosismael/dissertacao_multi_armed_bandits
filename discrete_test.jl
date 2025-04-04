@@ -13,7 +13,8 @@ distr = Categorical(
 0, 0.06, 0, 0, 0, 0, 0, 0, 0, 0 ])
 ν  = distr.p
 
-plot(arms, [distr.p[a] *a for a ∈ arms], label=nothing)
+xticks = [i for i in 2:2:40]
+plot(arms, [distr.p[a] *a for a ∈ arms], label=nothing, xticks=xticks)
 xlabel!("preço")
 ylabel!("valor esperado da recompensa")
 savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/discreta_exemplo.png")
@@ -38,19 +39,19 @@ open(FILE, "w") do f
 end
 
 # UCB
-bar(final_count["UCB"], dpi=300, labels="", grid=false)
+bar(final_count["UCB"], dpi=300, labels="", grid=false, xticks=xticks)
 xlabel!("preço")
 ylabel!("proporção")
 savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_ucb_disc.png")
 
 #ETC
-bar(final_count["ETC"], dpi=300, labels="", grid=false)
+bar(final_count["ETC"], dpi=300, labels="", grid=false, xticks=xticks)
 xlabel!("preço")
 ylabel!("proporção")
 savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_etc_disc.png")
 
 #ϵ-guloso
-bar(final_count["epsgreedy"], dpi=300, labels="", grid=false)
+bar(final_count["epsgreedy"], dpi=300, labels="", grid=false, xticks=xticks)
 xlabel!("preço")
 ylabel!("proporção")
 savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_eps_disc.png")

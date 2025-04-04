@@ -48,3 +48,15 @@ xlabel!("t")
 ylabel!(L"\mathrm{RecM}(20.000,t)")
 savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/shtc_comp_3.png")
 
+# Arrependimento
+acc = 1
+for (k,v) in sort(regret_shtc, byvalue=false, rev=true)
+    if acc == 1
+        plot(v, label = "$(k*100)%", dpi=300)
+    else
+        plot!(v, label = "$(k*100)%")
+    end
+    acc += 1
+end
+xlabel!("t")
+ylabel!(L"\mathrm{Arr}(20.000,t)")
