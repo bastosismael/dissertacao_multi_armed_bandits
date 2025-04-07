@@ -3,7 +3,7 @@ include("algoritmos.jl")
 include("cotas.jl")
 n_simulations = 20000
 horizon = 10000 
-n_arms = 10
+n_arms = 5
 φ = 0.01
 distr = [Bernoulli(0.2 - φ*(i-1)) for i ∈ 1:n_arms]
 
@@ -83,7 +83,7 @@ plot!((final_avg_regret["UCB"][2000:end]), label="UCB")
 plot!((final_avg_regret["ETC"][2000:end]), label="ETC")
 xlabel!("t")
 ylabel!(L"\mathrm{Arr}(20.000,t)")
-savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/regret_disc.png")
+savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/experimentos_numericos/regret_$φ.png")
 
 # Cota superior do ETC
 function upper_bound_etc(arms, m, n, σ)
@@ -107,3 +107,11 @@ function upper_bound_ucb(arms, n, σ)
 end
 
 upper_bound_etc(distr, 100, horizon, 1/2)
+upper_bound_ucb(distr, horizon, 1/2)
+
+arms_wp = Dict(d =>  d.p for d in distr)
+k = length(distr)
+arms_mean = collect(values(arms_wp))
+best_arm_mean = findmax(arms_mean)[1]
+Δ = best_arm_mean .- arms_mean
+R = 3 * sum(Δ) + 16*0.5^2*log(10000)*sum([1/i for i in Δ if i != 0])
