@@ -1,4 +1,4 @@
-include("algoritmos.jl")
+include("algoritmos_precificacao.jl")
 using LaTeXStrings
 
 n_simulations = 20000

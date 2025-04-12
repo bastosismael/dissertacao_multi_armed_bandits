@@ -3,7 +3,7 @@ include("algoritmos.jl")
 include("cotas.jl")
 n_simulations = 20000
 horizon = 10000 
-n_arms = 5
+n_arms = 10
 φ = 0.01
 distr = [Bernoulli(0.2 - φ*(i-1)) for i ∈ 1:n_arms]
 
@@ -102,7 +102,7 @@ function upper_bound_ucb(arms, n, σ)
 	arms_mean = collect(values(arms_wp))
 	best_arm_mean = findmax(arms_mean)[1]
 	Δ = best_arm_mean .- arms_mean
-	R = 3 * sum(Δ) + 16*σ^2*log(n)/sum(Δ)
+	R = 3 * sum(Δ) + 16*\sigma^2*log(n)*sum([1/i for i in Δ if i != 0])
     return R
 end
 
@@ -114,4 +114,3 @@ k = length(distr)
 arms_mean = collect(values(arms_wp))
 best_arm_mean = findmax(arms_mean)[1]
 Δ = best_arm_mean .- arms_mean
-R = 3 * sum(Δ) + 16*0.5^2*log(10000)*sum([1/i for i in Δ if i != 0])

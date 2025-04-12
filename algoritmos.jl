@@ -153,7 +153,7 @@ function simulate(n, best_arm_mean, distr , strategy, c = nothing, avg_reward=0,
 		if isnothing(c)
 			avg_reward = avg_reward + (1/(iteration+1))*(reward - avg_reward)
 		else
-			avg_reward =  avg_reward + (1/(iteration+1+500))*(reward - avg_reward)
+			avg_reward =  avg_reward + (1/(iteration+1+(10000 - n)))*(reward - avg_reward)
 		end
 		push!(cum_regret_vector, cum_regret)
 		cum_regret = cum_regret + regret
