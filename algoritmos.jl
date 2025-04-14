@@ -1,6 +1,6 @@
 using ProgressMeter
 
-function UCB(arm_avg_reward, arm_counter, δ=1e-8)
+function UCB(arm_avg_reward, arm_counter, δ=0.05)
 	if iszero(arm_avg_reward)
 		arm = rand(1:length(arm_avg_reward))
 	elseif 0 ∈ arm_counter
@@ -45,7 +45,7 @@ end
 
 
 function seq_halving(n, distr, regret=false)
-	best_arm_mean = findmax([d.p for d ∈ distr])[1]
+	best_arm_mean = findmax([d.μ for d ∈ distr])[1]
 	avg_reward_vector = []
 	cum_regret_vector = []
 	avg_reward = 0
@@ -184,7 +184,7 @@ function simulate_pure_exp(horizon, strategy, distr,  n_simulations=1000)
 end
 
 function evaluate(horizon, strategy, distr, n_simulations=1000, c=nothing, p_avg_reward=0, p_cum_regret=0)
-	best_arm_mean = findmax([d.p for d ∈ distr])[1]
+	best_arm_mean = findmax([d.μ for d ∈ distr])[1]
     final_arms = []
     final_avg_reward = zeros(horizon)
     final_avg_regret = zeros(horizon)
