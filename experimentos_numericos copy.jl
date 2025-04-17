@@ -1,11 +1,11 @@
 using Interact, StatsBase, ProgressMeter, Plots, Distributions, LaTeXStrings, JSON
 include("algoritmos.jl")
 include("cotas.jl")
-n_simulations = 20000
+n_simulations = 10000
 horizon = 10000 
 n_arms = 10
-φ = 0.01
-distr = [Normal(1 - 0.1*(i-1), 1) for i ∈ 1:n_arms]
+φ = 100
+distr = [Normal(1 - 0.1*(i-1), 1000) for i ∈ 1:n_arms]
 
 algorithms = ["UCB", "ETC", "epsgreedy"] 
 final_avg_reward = Dict("UCB" => [], "ETC" => [], "epsgreedy" => [])
@@ -16,7 +16,7 @@ final_count = Dict("UCB" => Dict{Int64, Float64}(), "ETC" => Dict{Int64, Float64
     horizon, alg, distr, n_simulations, false)
 end
 
-FILE = "results_en.json"
+FILE = "results_normal_100.json"
 
 # Salvando
 open(FILE, "w") do f
@@ -36,46 +36,47 @@ end
 
 
 # UCB
-bar(final_count["UCB"], dpi=300, labels="", grid=false, xticks=xticks)
-xlabel!("preço")
+x_ticks = [i for i in 1:1:10]
+bar(final_count["UCB"], dpi=300, labels="", grid=false, xticks=x_ticks)
+xlabel!("ação")
 ylabel!("proporção")
-savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/experimentos_numericos/arm_selection_ucb_$φ.png")
+savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/experimentos_numericos/arm_selection_ucb_normal_$φ.png")
 
 #ETC
-bar(final_count["ETC"], dpi=300, labels="", grid=false, xticks=xticks)
-xlabel!("preço")
+bar(final_count["ETC"], dpi=300, labels="", grid=false, xticks=x_ticks)
+xlabel!("ação")
 ylabel!("proporção")
-savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/experimentos_numericos/arm_selection_etc_$φ.png")
+savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/experimentos_numericos/arm_selection_etc_normal_$φ.png")
 
 #ϵ-guloso
-bar(final_count["epsgreedy"], dpi=300, labels="", grid=false, xticks=xticks)
-xlabel!("preço")
+bar(final_count["epsgreedy"], dpi=300, labels="", grid=false, xticks=x_ticks)
+xlabel!("ação")
 ylabel!("proporção")
-savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/experimentos_numericos/arm_selection_eps_$φ.png")
+savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/experimentos_numericos/arm_selection_eps_normal_$φ.png")
 
 # Sequential Halving
 selected_arms_halving, avg_reward_vector_halving, c_arms_halving = simulate_pure_exp(arms, horizon, "seq_halving", "NON_CDF", ν, n_simulations)
 bar(c_arms_halving, dpi=300, label=nothing)
-xlabel!("preço")
+xlabel!("ação")
 ylabel!("proporção")
 savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_seqhalving_disc.png")
 
 # Sequential Elimination
 selected_arms_elim, avg_reward_vector_elim, c_arms_elim = simulate_pure_exp(arms, horizon, "seq_elim", "NON_CDF", ν, n_simulations)
 bar(c_arms_elim, dpi=300, label=nothing)
-xlabel!("preço")
+xlabel!("ação")
 ylabel!("proporção")
 savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/precificaca_dinamica/arm_selection_seqelim_disc.png")
 
 # Gráfico - Comparação da recompensa entre os algoritmos de exploraçã0
-xticks = ([i for i in 0:2000:8000],[i+2000 for i in 0:2000:8000])
-plot(final_avg_reward["epsgreedy"][2000:end], label="ε-guloso", xticks=xticks, dpi=300)
+x_ticks = ([i for i in 0:2000:8000],[i+2000 for i in 0:2000:8000])
+plot(final_avg_reward["epsgreedy"][2000:end], label="ε-guloso", xticks=x_ticks, dpi=300)
 plot!(final_avg_reward["UCB"][2000:end], label="UCB")
 plot!(final_avg_reward["ETC"][2000:end], label="ETC")
-hline!([maximum(x -> maximum([d.p for d ∈ distr]),0:60)], label="max")
+hline!([maximum(x -> maximum([d.μ for d ∈ distr]),0:60)], label="max")
 xlabel!("t")
 ylabel!(L"\mathrm{RecM}(20.000,t)")
-savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/experimentos_numericos/reward_$φ.png")
+savefig("/home/ismael/Documents/Disserta-o/imagens_experimentos_numericos/experimentos_numericos/reward_normal_$φ.png")
 
 # Gráfico - Arrependimento 
 plot((final_avg_regret["epsgreedy"][2000:end]), label="ε-greedy", dpi=300, xticks=xticks)

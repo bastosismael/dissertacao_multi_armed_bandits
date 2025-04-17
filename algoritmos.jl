@@ -45,7 +45,7 @@ end
 
 
 function seq_halving(n, distr, regret=false)
-	best_arm_mean = findmax([d.μ for d ∈ distr])[1]
+	best_arm_mean = findmax([d.p for d ∈ distr])[1]
 	avg_reward_vector = []
 	cum_regret_vector = []
 	avg_reward = 0
@@ -58,7 +58,7 @@ function seq_halving(n, distr, regret=false)
 	for 𝓁=1:L
 		T_l = floor(n/(L * length(A)))
 		for j=1:T_l
-			for 𝒶 ∈ keys(A)
+			for 𝒶 ∈ A
 				it += 1
 				X = rand(distr[𝒶], 1)[1]
 				avg_reward += (1/(it+1))*(X - avg_reward)
@@ -94,13 +94,13 @@ function n_k(k, n, K)
     return ceil((1/p_1) * (n-K)/(K+1-k))
 end
 
-function seq_elim(arms, n, distr=nothing, method="CDF")
+function seq_elim(n, distr)
     """
     This function was made specifically for the dynamic pricing case
     """
-    K = Dict(k => v for (k,v) ∈ enumerate(arms))
-    means = Dict(i => 0. for i = 1:length(K))
-    A = K
+	K = [i for i in 1:length(distr)]
+	means = Dict(i => 0. for i = 1:length(K))
+	A = K
     L = length(K) -1
 	it=0
 	avg_reward_vector = []
@@ -108,13 +108,9 @@ function seq_elim(arms, n, distr=nothing, method="CDF")
     for 𝓁=1:L
         T_l = n_k(𝓁, n, length(K)) - n_k(𝓁-1, n, length(K))
         for j=1:T_l
-            for 𝒶 ∈ keys(A)
+            for 𝒶 ∈ A
 				it += 1
-				if method == "CDF"
-					X = get_reward(A[𝒶], distr) * arms[𝒶]
-				else
-					X = get_reward_2(A[𝒶], distr) * arms[𝒶]
-				end
+				X = rand(distr[𝒶], 1)[1]
 				avg_reward = avg_reward + (1/(it+1))*(X - avg_reward)
 				push!(avg_reward_vector, avg_reward)
                 means[𝒶] += X
@@ -122,8 +118,8 @@ function seq_elim(arms, n, distr=nothing, method="CDF")
         end
         means = Dict(i => v/T_l for (i,v) ∈ means)
         min_mean = findmin(means)[2]
-        A = Dict(k => v for (k,v) in A if k != min_mean)
-        means = Dict(i => 0. for i ∈ keys(A))
+        A = [k  for k in A if k != min_mean]
+        means = Dict(i => 0. for i ∈ A)
     end
     return A, avg_reward_vector
 end
@@ -169,9 +165,9 @@ function simulate_pure_exp(horizon, strategy, distr,  n_simulations=1000)
 	selected_arms = []
 	@showprogress for i in 1:n_simulations
 		if strategy=="seq_halving"
-			𝒶, avg_reward = seq_halving(horizon, distr, method)
+			𝒶, avg_reward = seq_halving(horizon, distr)
 		elseif strategy=="seq_elim"
-			𝒶, avg_reward = seq_elim(horizon, distr, method)
+			𝒶, avg_reward = seq_elim(horizon, distr)
 		end
 		push!(selected_arms, float(collect(keys(𝒶))[1]))
 		i ==1 ? final_avg_reward =  avg_reward : final_avg_reward += avg_reward
@@ -179,7 +175,7 @@ function simulate_pure_exp(horizon, strategy, distr,  n_simulations=1000)
 	final_avg_reward = final_avg_reward/n_simulations
 	count_arms = countmap(selected_arms)
 	count_arms = sort(Dict(k=>v/sum(values(count_arms)) for (k,v) ∈ count_arms), byvalue=true, rev=true)
-	count_arms = Dict(arms[Int(k)] => v for (k,v) ∈ count_arms)
+	count_arms = Dict(k => v for (k,v) ∈ count_arms)
 	return selected_arms, final_avg_reward, count_arms
 end
 
